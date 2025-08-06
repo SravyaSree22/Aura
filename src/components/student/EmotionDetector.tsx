@@ -36,6 +36,8 @@ const EmotionDetector = () => {
   const startDetection = async () => {
     try {
       setError('');
+      console.log('Starting emotion detection...');
+      
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           width: 640, 
@@ -44,14 +46,26 @@ const EmotionDetector = () => {
         } 
       });
       
+      console.log('Camera stream obtained:', stream);
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         setIsConnected(true);
         setIsDetecting(true);
         
-        // Start emotion detection loop
-        detectEmotion();
+        // Wait for video to be ready
+        videoRef.current.onloadedmetadata = () => {
+          console.log('Video metadata loaded');
+          console.log('Video dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
+        };
+        
+        videoRef.current.onplay = () => {
+          console.log('Video started playing');
+          // Start emotion detection loop
+          detectEmotion();
+        };
+        
       }
     } catch (err) {
       setError('Unable to access camera. Please check permissions.');
@@ -74,17 +88,38 @@ const EmotionDetector = () => {
   };
 
   const detectEmotion = async () => {
-    if (!isDetecting || !videoRef.current || !canvasRef.current) return;
+    if (!isDetecting || !videoRef.current || !canvasRef.current) {
+      console.log('Detection stopped or video/canvas not ready');
+      return;
+    }
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
 
-    if (!ctx) return;
+    if (!ctx) {
+      console.log('Canvas context not available');
+      return;
+    }
+
+    // Wait for video to be ready
+    if (video.readyState < 2) {
+      console.log('Video not ready yet, state:', video.readyState);
+      // Video not ready yet, try again in a bit
+      if (isDetecting) {
+        setTimeout(detectEmotion, 100);
+      }
+      return;
+    }
 
     // Set canvas size to match video
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    const videoWidth = video.videoWidth || 640;
+    const videoHeight = video.videoHeight || 480;
+    
+    canvas.width = videoWidth;
+    canvas.height = videoHeight;
+
+    console.log('Processing video frame:', videoWidth, 'x', videoHeight);
 
     // Draw video frame to canvas
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -93,23 +128,33 @@ const EmotionDetector = () => {
       // Get image data from canvas
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       
+      console.log('Sending image data to backend...', {
+        width: canvas.width,
+        height: canvas.height,
+        dataLength: imageData.data.length
+      });
+      
       // Send to backend for emotion detection using MediaPipe
-      const response = await fetch('/api/emotions/detect/', {
+      const response = await fetch('http://localhost:8050/api/emotions/detect/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken') || '',
         },
         body: JSON.stringify({
-          image_data: imageData.data,
+          image_data: Array.from(imageData.data), // Convert to regular array
           width: canvas.width,
           height: canvas.height
         }),
         credentials: 'include'
       });
 
+      console.log('Response status:', response.status);
+
       if (response.ok) {
         const result = await response.json();
+        console.log('Emotion detection result:', result);
+        
         const { emotion, confidence: conf } = result;
         
         setCurrentEmotion(emotion);
@@ -128,7 +173,8 @@ const EmotionDetector = () => {
         addEmotion(emotion, conf);
 
       } else {
-        console.error('Emotion detection failed');
+        const errorText = await response.text();
+        console.error('Emotion detection failed:', response.status, errorText);
       }
     } catch (err) {
       console.error('Error detecting emotion:', err);
@@ -191,6 +237,9 @@ const EmotionDetector = () => {
                   playsInline
                   muted
                   className="w-full h-64 bg-gray-900 rounded-lg object-cover"
+                  onLoadedMetadata={() => console.log('Video metadata loaded')}
+                  onPlay={() => console.log('Video started playing')}
+                  onError={(e) => console.error('Video error:', e)}
                 />
                 <canvas
                   ref={canvasRef}
@@ -256,6 +305,18 @@ const EmotionDetector = () => {
                     Stop Detection
                   </Button>
                 )}
+                
+                {/* Test button for debugging */}
+                <Button
+                  onClick={() => {
+                    console.log('Manual test triggered');
+                    detectEmotion();
+                  }}
+                  variant="outline"
+                  className="px-3"
+                >
+                  Test
+                </Button>
               </div>
 
               {error && (

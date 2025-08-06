@@ -1,6 +1,27 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+import os
+
+
+def assignment_submission_file_path(instance, filename):
+    """Generate file path for assignment submissions"""
+    # Get the assignment and student info
+    assignment = instance.assignment
+    student = instance.student
+    
+    # Create a clean filename structure
+    course_code = assignment.course.code
+    assignment_title = assignment.title.replace(' ', '_').replace('/', '_')
+    student_username = student.username
+    
+    # Get file extension
+    ext = os.path.splitext(filename)[1]
+    
+    # Create the path: submissions/course_code/assignment_title/student_username_timestamp.ext
+    new_filename = f"{student_username}_{instance.submitted_at.strftime('%Y%m%d_%H%M%S')}{ext}"
+    
+    return os.path.join('submissions', course_code, assignment_title, new_filename)
 
 
 class Course(models.Model):
@@ -99,6 +120,7 @@ class AssignmentSubmission(models.Model):
     grade = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     submitted_at = models.DateTimeField(null=True, blank=True)
     graded_at = models.DateTimeField(null=True, blank=True)
+    submission_file = models.FileField(upload_to=assignment_submission_file_path, blank=True, null=True)
     
     class Meta:
         unique_together = ['assignment', 'student']

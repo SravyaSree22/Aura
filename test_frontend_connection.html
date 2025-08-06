@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion Detection Test</title>
+</head>
+<body>
+    <h1>Emotion Detection Test</h1>
+    <button onclick="testConnection()">Test Backend Connection</button>
+    <button onclick="testEmotionDetection()">Test Emotion Detection</button>
+    <div id="result"></div>
+
+    <script>
+        async function testConnection() {
+            try {
+                const response = await fetch('http://127.0.0.1:8050/api/emotions/');
+                const result = await response.json();
+                document.getElementById('result').innerHTML = 
+                    `<p>Connection successful! Found ${result.length} emotions</p>`;
+            } catch (error) {
+                document.getElementById('result').innerHTML = 
+                    `<p>Connection failed: ${error.message}</p>`;
+            }
+        }
+
+        async function testEmotionDetection() {
+            try {
+                // Create a simple test image (random data)
+                const width = 640;
+                const height = 480;
+                const testImageData = new Array(width * height * 4).fill(128);
+                
+                const response = await fetch('http://127.0.0.1:8050/api/emotions/detect/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image_data: testImageData,
+                        width: width,
+                        height: height
+                    })
+                });
+                
+                const result = await response.json();
+                document.getElementById('result').innerHTML = 
+                    `<p>Emotion detection successful! Result: ${JSON.stringify(result)}</p>`;
+            } catch (error) {
+                document.getElementById('result').innerHTML = 
+                    `<p>Emotion detection failed: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

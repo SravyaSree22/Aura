@@ -75,9 +75,12 @@ export interface Attendance {
 }
 
 export interface Emotion {
+  id?: number;
   timestamp: string;
-  status: 'normal' | 'stressed' | 'tired' | 'focused';
+  emotion?: string;
+  status?: 'normal' | 'stressed' | 'tired' | 'focused';
   confidence: number;
+  student?: number;
 }
 
 export interface Badge {

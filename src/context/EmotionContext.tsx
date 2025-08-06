@@ -7,6 +7,7 @@ interface EmotionContextType {
   emotions: Emotion[];
   currentEmotion: Emotion | null;
   detectEmotion: (imageSrc?: string) => void;
+  addEmotion: (emotion: string, confidence: number) => void;
   isDetecting: boolean;
 }
 
@@ -14,12 +15,15 @@ const EmotionContext = createContext<EmotionContextType>({
   emotions: [],
   currentEmotion: null,
   detectEmotion: () => {},
+  addEmotion: () => {},
   isDetecting: false,
 });
 
-export const useEmotion = () => useContext(EmotionContext);
+function useEmotion() {
+  return useContext(EmotionContext);
+}
 
-export const EmotionProvider = ({ children }: { children: ReactNode }) => {
+function EmotionProvider({ children }: { children: ReactNode }) {
   const { currentUser, loading: authLoading } = useAuth();
   const [emotions, setEmotions] = useState<Emotion[]>([]);
   const [currentEmotion, setCurrentEmotion] = useState<Emotion | null>(null);
@@ -76,12 +80,27 @@ export const EmotionProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const addEmotion = (emotion: string, confidence: number) => {
+    const newEmotion: Emotion = {
+      id: Date.now(), // Temporary ID for frontend
+      timestamp: new Date().toISOString(),
+      emotion: emotion,
+      confidence
+    };
+    
+    setEmotions(prev => [newEmotion, ...prev]);
+    setCurrentEmotion(newEmotion);
+  };
+
   const value = {
     emotions,
     currentEmotion,
     detectEmotion,
+    addEmotion,
     isDetecting,
   };
 
   return <EmotionContext.Provider value={value}>{children}</EmotionContext.Provider>;
-};
+}
+
+export { useEmotion, EmotionProvider };
