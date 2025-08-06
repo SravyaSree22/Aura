@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Course, Grade, Assignment, Attendance, Emotion, Badge, Doubt, StudentStats, AssignmentSubmission
+from .models import Course, Grade, Assignment, Attendance, Emotion, Badge, Doubt, StudentStats, AssignmentSubmission, Schedule
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -207,4 +207,35 @@ class StudentStatsSerializer(serializers.ModelSerializer):
                 'focused': instance.emotional_status_focused,
             },
             'trend': instance.trend_data,
+        } 
+
+
+class ScheduleSerializer(serializers.ModelSerializer):
+    course = CourseSerializer(read_only=True)
+    course_id = serializers.IntegerField(write_only=True, required=False)
+    
+    class Meta:
+        model = Schedule
+        fields = ['id', 'course', 'course_id', 'day', 'time', 'type', 'room', 'created_at', 'updated_at']
+    
+    def create(self, validated_data):
+        course_id = validated_data.pop('course_id', None)
+        if course_id:
+            validated_data['course_id'] = course_id
+        return super().create(validated_data)
+    
+    def to_representation(self, instance):
+        return {
+            'id': f"s{instance.id}",
+            'courseId': f"c{instance.course.id}",
+            'courseName': instance.course.name,
+            'courseCode': instance.course.code,
+            'teacher': f"{instance.course.teacher.first_name} {instance.course.teacher.last_name}".strip() or instance.course.teacher.username,
+            'day': instance.day,
+            'time': instance.time,
+            'type': instance.type,
+            'room': instance.room,
+            'color': instance.course.color,
+            'createdAt': instance.created_at.strftime('%Y-%m-%dT%H:%M:%S'),
+            'updatedAt': instance.updated_at.strftime('%Y-%m-%dT%H:%M:%S'),
         } 

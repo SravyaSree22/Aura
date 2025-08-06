@@ -16,6 +16,40 @@ class Course(models.Model):
         return f"{self.code} - {self.name}"
 
 
+class Schedule(models.Model):
+    DAY_CHOICES = [
+        ('Monday', 'Monday'),
+        ('Tuesday', 'Tuesday'),
+        ('Wednesday', 'Wednesday'),
+        ('Thursday', 'Thursday'),
+        ('Friday', 'Friday'),
+    ]
+    
+    TYPE_CHOICES = [
+        ('Lecture', 'Lecture'),
+        ('Lab', 'Lab'),
+        ('Seminar', 'Seminar'),
+        ('Tutorial', 'Tutorial'),
+        ('Workshop', 'Workshop'),
+    ]
+    
+    id = models.AutoField(primary_key=True)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='schedules')
+    day = models.CharField(max_length=10, choices=DAY_CHOICES)
+    time = models.CharField(max_length=10)  # e.g., "9:30 AM"
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='Lecture')
+    room = models.CharField(max_length=50, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['course', 'day', 'time']
+        ordering = ['day', 'time']
+    
+    def __str__(self):
+        return f"{self.course.name} - {self.day} {self.time} ({self.type})"
+
+
 class Grade(models.Model):
     id = models.AutoField(primary_key=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='grades')
@@ -94,6 +128,16 @@ class Attendance(models.Model):
 
 
 class Emotion(models.Model):
+    EMOTION_CHOICES = [
+        ('happy', 'Happy'),
+        ('sad', 'Sad'),
+        ('angry', 'Angry'),
+        ('surprised', 'Surprised'),
+        ('neutral', 'Neutral'),
+        ('fear', 'Fear'),
+        ('disgust', 'Disgust'),
+    ]
+    
     STATUS_CHOICES = [
         ('normal', 'Normal'),
         ('stressed', 'Stressed'),
@@ -104,11 +148,13 @@ class Emotion(models.Model):
     id = models.AutoField(primary_key=True)
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='emotions')
     timestamp = models.DateTimeField(default=timezone.now)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    emotion = models.CharField(max_length=20, choices=EMOTION_CHOICES, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, null=True, blank=True)
     confidence = models.DecimalField(max_digits=3, decimal_places=2)
     
     def __str__(self):
-        return f"{self.student.username} - {self.status} - {self.timestamp}"
+        emotion_display = self.emotion or self.status or 'Unknown'
+        return f"{self.student.username} - {emotion_display} - {self.timestamp}"
 
 
 class Badge(models.Model):

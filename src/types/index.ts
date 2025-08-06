@@ -15,6 +15,21 @@ export interface Course {
   color: string;
 }
 
+export interface Schedule {
+  id: string;
+  courseId: string;
+  courseName: string;
+  courseCode: string;
+  teacher: string;
+  day: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
+  time: string;
+  type: 'Lecture' | 'Lab' | 'Seminar' | 'Tutorial' | 'Workshop';
+  room?: string;
+  color: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Grade {
   id: string;
   courseId: string;

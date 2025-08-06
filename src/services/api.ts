@@ -171,6 +171,49 @@ class ApiService {
   async getStudentStats() {
     return this.request('/student-stats/');
   }
+
+  // Schedule endpoints
+  async getSchedules() {
+    return this.request('/schedules/');
+  }
+
+  async getMySchedule() {
+    return this.request('/schedules/my_schedule/');
+  }
+
+  async createSchedule(courseId: string, day: string, time: string, type: string, room?: string) {
+    const courseIdNum = courseId.replace('c', '');
+    return this.request('/schedules/', {
+      method: 'POST',
+      body: JSON.stringify({
+        course_id: courseIdNum,
+        day,
+        time,
+        type,
+        room: room || null,
+      }),
+    });
+  }
+
+  async updateSchedule(scheduleId: string, day: string, time: string, type: string, room?: string) {
+    const id = scheduleId.replace('s', '');
+    return this.request(`/schedules/${id}/`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        day,
+        time,
+        type,
+        room: room || null,
+      }),
+    });
+  }
+
+  async deleteSchedule(scheduleId: string) {
+    const id = scheduleId.replace('s', '');
+    return this.request(`/schedules/${id}/`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const apiService = new ApiService(); 

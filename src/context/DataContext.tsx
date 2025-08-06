@@ -6,7 +6,8 @@ import {
   Attendance, 
   Badge, 
   Doubt,
-  StudentStats
+  StudentStats,
+  Schedule
 } from '../types';
 import { apiService } from '../services/api';
 import { useAuth } from './AuthContext';
@@ -19,11 +20,15 @@ interface DataContextType {
   badges: Badge[];
   doubts: Doubt[];
   studentStats: StudentStats[];
+  schedules: Schedule[];
   submitDoubt: (courseId: string, question: string) => Promise<void>;
   submitAssignment: (assignmentId: string) => Promise<void>;
   createAssignment: (courseId: string, title: string, description: string, dueDate: string, maxGrade?: number) => Promise<void>;
   gradeAssignment: (assignmentId: string, grade: number) => Promise<void>;
   gradeStudentSubmission: (assignmentId: string, studentId: string, grade: number) => Promise<void>;
+  createSchedule: (courseId: string, day: string, time: string, type: string, room?: string) => Promise<void>;
+  updateSchedule: (scheduleId: string, day: string, time: string, type: string, room?: string) => Promise<void>;
+  deleteSchedule: (scheduleId: string) => Promise<void>;
   loading: boolean;
 }
 
@@ -35,11 +40,15 @@ const DataContext = createContext<DataContextType>({
   badges: [],
   doubts: [],
   studentStats: [],
+  schedules: [],
   submitDoubt: async () => {},
   submitAssignment: async () => {},
   createAssignment: async () => {},
   gradeAssignment: async () => {},
   gradeStudentSubmission: async () => {},
+  createSchedule: async () => {},
+  updateSchedule: async () => {},
+  deleteSchedule: async () => {},
   loading: false,
 });
 
@@ -54,6 +63,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [badges, setBadges] = useState<Badge[]>([]);
   const [doubts, setDoubts] = useState<Doubt[]>([]);
   const [studentStats, setStudentStats] = useState<StudentStats[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -77,7 +87,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           attendanceResponse,
           badgesResponse,
           doubtsResponse,
-          studentStatsResponse
+          studentStatsResponse,
+          schedulesResponse
         ] = await Promise.all([
           apiService.getCourses(),
           apiService.getGrades(),
@@ -85,7 +96,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           apiService.getAttendance(),
           apiService.getBadges(),
           apiService.getDoubts(),
-          apiService.getStudentStats()
+          apiService.getStudentStats(),
+          apiService.getSchedules()
         ]);
 
         if (coursesResponse.data) setCourses(coursesResponse.data as Course[]);
@@ -95,6 +107,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         if (badgesResponse.data) setBadges(badgesResponse.data as Badge[]);
         if (doubtsResponse.data) setDoubts(doubtsResponse.data as Doubt[]);
         if (studentStatsResponse.data) setStudentStats(studentStatsResponse.data as StudentStats[]);
+        if (schedulesResponse.data) setSchedules(schedulesResponse.data as Schedule[]);
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -185,6 +198,46 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const createSchedule = async (courseId: string, day: string, time: string, type: string, room?: string) => {
+    try {
+      const response = await apiService.createSchedule(courseId, day, time, type, room);
+      if (response.data) {
+        setSchedules(prev => [response.data as Schedule, ...prev]);
+      }
+    } catch (error) {
+      console.error('Error creating schedule:', error);
+      throw error;
+    }
+  };
+
+  const updateSchedule = async (scheduleId: string, day: string, time: string, type: string, room?: string) => {
+    try {
+      const response = await apiService.updateSchedule(scheduleId, day, time, type, room);
+      if (response.data) {
+        setSchedules(prev => 
+          prev.map(schedule => 
+            schedule.id === scheduleId 
+              ? response.data as Schedule
+              : schedule
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating schedule:', error);
+      throw error;
+    }
+  };
+
+  const deleteSchedule = async (scheduleId: string) => {
+    try {
+      await apiService.deleteSchedule(scheduleId);
+      setSchedules(prev => prev.filter(schedule => schedule.id !== scheduleId));
+    } catch (error) {
+      console.error('Error deleting schedule:', error);
+      throw error;
+    }
+  };
+
   const value = {
     courses,
     grades,
@@ -193,11 +246,15 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     badges,
     doubts,
     studentStats,
+    schedules,
     submitDoubt,
     submitAssignment,
     createAssignment,
     gradeAssignment,
     gradeStudentSubmission,
+    createSchedule,
+    updateSchedule,
+    deleteSchedule,
     loading,
   };
 
