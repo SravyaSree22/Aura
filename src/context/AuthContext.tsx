@@ -6,6 +6,7 @@ interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, name: string, role: 'student' | 'teacher') => Promise<void>;
   logout: () => void;
   error: string | null;
 }
@@ -14,6 +15,7 @@ const AuthContext = createContext<AuthContextType>({
   currentUser: null,
   loading: true,
   login: async () => {},
+  signup: async () => {},
   logout: () => {},
   error: null,
 });
@@ -34,7 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
         
         if (csrfResponse.ok) {
-          const csrfData = await csrfResponse.json();
+          await csrfResponse.json();
           // The CSRF token will be automatically set in cookies by Django
           console.log('CSRF token obtained successfully');
         } else {
@@ -101,6 +103,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const signup = async (email: string, password: string, name: string, role: 'student' | 'teacher') => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await apiService.signup(email, password, name, role);
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      if (response.data) {
+        setCurrentUser(response.data as User);
+        localStorage.setItem('aura_user', JSON.stringify(response.data));
+      } else {
+        throw new Error('Failed to create account');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('aura_user');
@@ -110,6 +137,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     currentUser,
     loading,
     login,
+    signup,
     logout,
     error,
   };

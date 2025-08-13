@@ -117,3 +117,20 @@ export interface StudentStats {
   };
   trend: number[];
 }
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'assignment' | 'grade' | 'doubt' | 'attendance' | 'system' | 'emotion';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  isRead: boolean;
+  createdAt: string;
+  readAt?: string;
+  course?: string;
+  courseId?: string;
+  assignment?: string;
+  assignmentId?: string;
+  doubt?: string;
+  doubtId?: string;
+}

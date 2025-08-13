@@ -1,4 +1,4 @@
-import React from 'react';
+
 import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import GradeCard from '../components/student/GradeCard';
 import AssignmentCard from '../components/student/AssignmentCard';
@@ -6,7 +6,7 @@ import EmotionDetector from '../components/student/EmotionDetector';
 import DoubtForm from '../components/student/DoubtForm';
 import BadgeCard from '../components/student/BadgeCard';
 import { useData } from '../context/DataContext';
-import { Book, Calendar, Check, Clock, X } from 'lucide-react';
+import { Book, Calendar, Check, Clock } from 'lucide-react';
 
 const StudentDashboard = () => {
   const { grades, assignments, attendance, badges } = useData();

@@ -64,7 +64,7 @@ function EmotionProvider({ children }: { children: ReactNode }) {
     }
   }, [emotions]);
 
-  const detectEmotion = async (imageSrc?: string) => {
+  const detectEmotion = async () => {
     setIsDetecting(true);
     
     try {

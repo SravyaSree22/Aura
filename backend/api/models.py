@@ -224,3 +224,48 @@ class StudentStats(models.Model):
     
     def __str__(self):
         return f"{self.student.username} - Stats"
+
+
+class Notification(models.Model):
+    TYPE_CHOICES = [
+        ('assignment', 'Assignment'),
+        ('grade', 'Grade'),
+        ('doubt', 'Doubt'),
+        ('attendance', 'Attendance'),
+        ('system', 'System'),
+        ('emotion', 'Emotion'),
+    ]
+    
+    PRIORITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('urgent', 'Urgent'),
+    ]
+    
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    notification_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='system')
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=timezone.now)
+    read_at = models.DateTimeField(null=True, blank=True)
+    
+    # Optional related objects
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    doubt = models.ForeignKey(Doubt, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.title} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+    
+    def mark_as_read(self):
+        if not self.is_read:
+            self.is_read = True
+            self.read_at = timezone.now()
+            self.save()

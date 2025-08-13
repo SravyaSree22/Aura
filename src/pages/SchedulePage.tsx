@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
-import Card, { CardHeader, CardContent } from '../components/ui/Card';
+import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { ChevronLeft, ChevronRight, Clock, Plus, Edit, Trash2, X } from 'lucide-react';

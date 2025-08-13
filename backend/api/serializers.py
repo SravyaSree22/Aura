@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Course, Grade, Assignment, Attendance, Emotion, Badge, Doubt, StudentStats, AssignmentSubmission, Schedule
+from .models import Course, Grade, Assignment, Attendance, Emotion, Badge, Doubt, StudentStats, AssignmentSubmission, \
+    Schedule, Notification
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -238,4 +239,32 @@ class ScheduleSerializer(serializers.ModelSerializer):
             'color': instance.course.color,
             'createdAt': instance.created_at.strftime('%Y-%m-%dT%H:%M:%S'),
             'updatedAt': instance.updated_at.strftime('%Y-%m-%dT%H:%M:%S'),
+        }
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    course = CourseSerializer(read_only=True)
+    assignment = AssignmentSerializer(read_only=True)
+    doubt = DoubtSerializer(read_only=True)
+    
+    class Meta:
+        model = Notification
+        fields = ['id', 'title', 'message', 'notification_type', 'priority', 'is_read', 'created_at', 'read_at', 'course', 'assignment', 'doubt']
+    
+    def to_representation(self, instance):
+        return {
+            'id': f"n{instance.id}",
+            'title': instance.title,
+            'message': instance.message,
+            'type': instance.notification_type,
+            'priority': instance.priority,
+            'isRead': instance.is_read,
+            'createdAt': instance.created_at.strftime('%Y-%m-%dT%H:%M:%S'),
+            'readAt': instance.read_at.strftime('%Y-%m-%dT%H:%M:%S') if instance.read_at else None,
+            'course': instance.course.name if instance.course else None,
+            'courseId': f"c{instance.course.id}" if instance.course else None,
+            'assignment': instance.assignment.title if instance.assignment else None,
+            'assignmentId': f"a{instance.assignment.id}" if instance.assignment else None,
+            'doubt': instance.doubt.question[:50] + "..." if instance.doubt else None,
+            'doubtId': f"d{instance.doubt.id}" if instance.doubt else None,
         } 

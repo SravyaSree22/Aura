@@ -22,6 +22,7 @@ class ApiService {
     return cookieValue;
   }
 
+  // eslint-disable-next-line no-undef
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     try {
       // Get CSRF token for POST requests
@@ -38,6 +39,7 @@ class ApiService {
 
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         headers,
+        // eslint-disable-next-line no-undef
         credentials: 'include',
         ...options,
       });
@@ -61,6 +63,13 @@ class ApiService {
     });
   }
 
+  async signup(email: string, password: string, name: string, role: 'student' | 'teacher' = 'student') {
+    return this.request('/users/signup/', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, name, role }),
+    });
+  }
+
   // Course endpoints
   async getCourses() {
     return this.request('/courses/');
@@ -76,7 +85,7 @@ class ApiService {
     return this.request('/assignments/');
   }
 
-  async createAssignment(courseId: string, title: string, description: string, dueDate: string, maxGrade?: number) {
+  async createAssignment(courseId: string, title: string, description: string, dueDate: string) {
     const courseIdNum = courseId.replace('c', '');
     return this.request('/assignments/', {
       method: 'POST',
@@ -213,6 +222,28 @@ class ApiService {
     return this.request(`/schedules/${id}/`, {
       method: 'DELETE',
     });
+  }
+
+  // Notification endpoints
+  async getNotifications() {
+    return this.request('/notifications/');
+  }
+
+  async markNotificationAsRead(notificationId: string) {
+    const id = notificationId.replace('n', '');
+    return this.request(`/notifications/${id}/mark_as_read/`, {
+      method: 'POST',
+    });
+  }
+
+  async markAllNotificationsAsRead() {
+    return this.request('/notifications/mark_all_as_read/', {
+      method: 'POST',
+    });
+  }
+
+  async getUnreadNotificationCount() {
+    return this.request('/notifications/unread_count/');
   }
 }
 

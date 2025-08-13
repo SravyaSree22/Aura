@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import { Bell, Globe, Lock, Moon, Shield, Smartphone, User } from 'lucide-react';
+import { Bell, Globe, Lock, Shield, Smartphone, User } from 'lucide-react';
 
 const SettingsPage = () => {
   // General Settings

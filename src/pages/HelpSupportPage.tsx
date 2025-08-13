@@ -245,8 +245,8 @@ const HelpSupportPage = () => {
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Our Support Team</h3>
                   <p className="text-gray-600 mb-6">
-                    Have a question that's not covered in our FAQs or guides? Our support team is here to help.
-                    Fill out the form, and we'll get back to you as soon as possible.
+                    Have a question that&apos;s not covered in our FAQs or guides? Our support team is here to help.
+                    Fill out the form, and we&apos;ll get back to you as soon as possible.
                   </p>
                   
                   <form onSubmit={handleContactSubmit} className="space-y-4">
@@ -353,7 +353,7 @@ const HelpSupportPage = () => {
         </CardContent>
       </Card>
       
-      <style jsx="true">{`
+      <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-10px); }
           to { opacity: 1; transform: translateY(0); }

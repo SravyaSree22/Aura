@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Grade } from '../../types';
 import Card, { CardContent } from '../ui/Card';
 

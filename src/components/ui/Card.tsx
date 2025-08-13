@@ -4,14 +4,15 @@ interface CardProps {
   children: ReactNode;
   className?: string;
   hoverEffect?: boolean;
+  style?: React.CSSProperties;
 }
 
-const Card = ({ children, className = '', hoverEffect = false }: CardProps) => {
+const Card = ({ children, className = '', hoverEffect = false, style }: CardProps) => {
   const baseClasses = 'bg-white rounded-xl shadow-sm overflow-hidden';
   const hoverClasses = hoverEffect ? 'transition-all duration-200 hover:shadow-md' : '';
   
   return (
-    <div className={`${baseClasses} ${hoverClasses} ${className}`}>
+    <div className={`${baseClasses} ${hoverClasses} ${className}`} style={style}>
       {children}
     </div>
   );

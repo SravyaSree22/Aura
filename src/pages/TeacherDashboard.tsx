@@ -1,4 +1,4 @@
-import React from 'react';
+
 import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import StudentList from '../components/teacher/StudentList';
 import PerformanceChart from '../components/teacher/PerformanceChart';

@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import LoginPage from './pages/LoginPage';
@@ -17,9 +18,10 @@ import Layout from './components/layout/Layout';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { EmotionProvider } from './context/EmotionContext';
 import { DataProvider } from './context/DataContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 // Protected route component
-const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactElement }) => {
   const { currentUser, loading } = useAuth();
   
   if (loading) {
@@ -63,7 +65,8 @@ function App() {
     <AuthProvider>
       <EmotionProvider>
         <DataProvider>
-          <Router>
+          <NotificationProvider>
+            <Router>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               
@@ -152,6 +155,7 @@ function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Router>
+          </NotificationProvider>
         </DataProvider>
       </EmotionProvider>
     </AuthProvider>

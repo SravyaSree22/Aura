@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
-import { LockKeyhole, Mail } from 'lucide-react';
+import { LockKeyhole, Mail, Eye, EyeOff } from 'lucide-react';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const { login, error, loading } = useAuth();
@@ -52,12 +53,12 @@ const LoginForm = () => {
 
   // For demo purposes, provide login credentials
   const loginAsStudent = () => {
-    setEmail('alex@example.com');
+    setEmail('teacher1@example.com');
     setPassword('password123');
   };
 
   const loginAsTeacher = () => {
-    setEmail('sarah@example.com');
+    setEmail('student1@example.com');
     setPassword('password123');
   };
 
@@ -75,16 +76,26 @@ const LoginForm = () => {
           icon={<Mail size={18} />}
         />
         
-        <Input
-          label="Password"
-          type="password"
-          placeholder="Enter your password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          error={passwordError}
-          fullWidth
-          icon={<LockKeyhole size={18} />}
-        />
+        <div className="relative">
+          <Input
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            error={passwordError}
+            fullWidth
+            icon={<LockKeyhole size={18} />}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            style={{ top: 'calc(50% + 8px)' }}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
         
         {error && <p className="text-red-600 text-sm">{error}</p>}
         
@@ -117,6 +128,23 @@ const LoginForm = () => {
               Login as Teacher
             </Button>
           </div>
+        </div>
+        
+        <div className="mt-6 text-center text-sm text-gray-600">
+          <p>
+                         Don&apos;t have an account?{' '}
+            <button
+              type="button"
+              className="text-indigo-600 hover:text-indigo-500 font-medium"
+              onClick={() => {
+                // This will be handled by the parent component
+                const event = new CustomEvent('switchToSignup');
+                window.dispatchEvent(event);
+              }}
+            >
+              Sign up here
+            </button>
+          </p>
         </div>
       </form>
     </div>

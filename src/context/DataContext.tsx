@@ -148,9 +148,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const createAssignment = async (courseId: string, title: string, description: string, dueDate: string, maxGrade?: number) => {
+  const createAssignment = async (courseId: string, title: string, description: string, dueDate: string) => {
     try {
-      const response = await apiService.createAssignment(courseId, title, description, dueDate, maxGrade);
+      const response = await apiService.createAssignment(courseId, title, description, dueDate);
       if (response.data) {
         setAssignments(prev => [response.data as Assignment, ...prev]);
       }

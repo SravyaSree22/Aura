@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { StudentStats } from '../../types';
 import Card, { CardHeader, CardContent } from '../ui/Card';
 import { TrendingDown, TrendingUp } from 'lucide-react';

@@ -1,6 +1,5 @@
-import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Award, BookOpen, Calendar, CircleHelp, LayoutDashboard, MessageSquare, Settings, Users } from 'lucide-react';
+import { BookOpen, Calendar, CircleHelp, LayoutDashboard, MessageSquare, Settings, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = () => {

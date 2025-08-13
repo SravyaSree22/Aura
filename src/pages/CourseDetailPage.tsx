@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -13,14 +13,14 @@ import {
   FileText, 
   MessageCircle, 
   BarChart3, 
-  Clock,
+
   CheckCircle,
   Circle,
   Plus,
   Edit,
   Trash2
 } from 'lucide-react';
-import { apiService } from '../services/api';
+
 
 const CourseDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -49,7 +49,7 @@ const CourseDetailPage = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Course Not Found</h2>
-          <p className="text-gray-600 mb-6">The course you're looking for doesn't exist.</p>
+          <p className="text-gray-600 mb-6">The course you&apos;re looking for doesn&apos;t exist.</p>
           <Button variant="primary" onClick={() => navigate('/courses')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Courses
@@ -64,7 +64,7 @@ const CourseDetailPage = () => {
   const courseDoubts = doubts.filter(d => d.courseId === courseId);
   
   const completedAssignments = courseAssignments.filter(a => a.status === 'submitted' || a.status === 'graded');
-  const pendingAssignments = courseAssignments.filter(a => a.status === 'pending');
+
   
   const averageGrade = courseGrades.length > 0 
     ? courseGrades.reduce((sum, grade) => sum + grade.value, 0) / courseGrades.length 
@@ -665,7 +665,7 @@ const CourseDetailPage = () => {
             </CardHeader>
             <CardContent>
               <p className="text-gray-700 mb-4">
-                Grade for "{courseAssignments.find(a => a.id === selectedAssignment)?.title}"
+                Grade for &quot;{courseAssignments.find(a => a.id === selectedAssignment)?.title}&quot;
               </p>
               <div className="flex items-center space-x-2 mb-4">
                 <label htmlFor="grade" className="block text-sm font-medium text-gray-700">

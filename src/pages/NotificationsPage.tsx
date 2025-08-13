@@ -1,92 +1,26 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNotifications } from '../context/NotificationContext';
 import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import { Calendar, Check, Clock, FileText, MessageCircle, EllipsisVertical, User } from 'lucide-react';
+import { Bell, Calendar, Check, FileText, MessageCircle, EllipsisVertical, AlertTriangle, Heart } from 'lucide-react';
 
 const NotificationsPage = () => {
-  // Notifications data from API
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'assignment',
-      title: 'New Assignment Added',
-      message: 'Calculus Problem Set has been added to Mathematics.',
-      date: '2025-07-17T10:15:00',
-      read: false,
-    },
-    {
-      id: 2,
-      type: 'grade',
-      title: 'New Grade Posted',
-      message: 'Your grade for Algorithm Assignment has been posted.',
-      date: '2025-07-16T14:30:00',
-      read: true,
-    },
-    {
-      id: 3,
-      type: 'message',
-      title: 'New Message',
-      message: 'Dr. Sarah Chen replied to your question about integration by parts.',
-      date: '2025-07-16T11:45:00',
-      read: false,
-    },
-    {
-      id: 4,
-      type: 'schedule',
-      title: 'Class Rescheduled',
-      message: 'Physics class on Friday has been moved to 3:30 PM.',
-      date: '2025-07-15T09:20:00',
-      read: true,
-    },
-    {
-      id: 5,
-      type: 'assignment',
-      title: 'Assignment Due Soon',
-      message: 'Mechanics Lab Report is due in 2 days.',
-      date: '2025-07-15T08:00:00',
-      read: false,
-    },
-    {
-      id: 6,
-      type: 'message',
-      title: 'New Message',
-      message: 'Prof. Michael Rodriguez posted an announcement in Computer Science.',
-      date: '2025-07-14T16:10:00',
-      read: true,
-    },
-    {
-      id: 7,
-      type: 'grade',
-      title: 'New Grade Posted',
-      message: 'Your grade for Essay Submission has been posted.',
-      date: '2025-07-14T13:25:00',
-      read: true,
-    },
-  ]);
-  
+  const { notifications, loading, error, fetchNotifications, markAsRead, markAllAsRead } = useNotifications();
   const [filter, setFilter] = useState('all');
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
-  
-  // Handle mark as read
-  const markAsRead = (id: number) => {
-    setNotifications(notifications.map(notification => 
-      notification.id === id ? { ...notification, read: true } : notification
-    ));
-  };
-  
-  // Handle mark all as read
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(notification => ({ ...notification, read: true })));
-  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
   
   // Filter notifications
   const filteredNotifications = notifications
     .filter(notification => {
-      if (showUnreadOnly && notification.read) return false;
+      if (showUnreadOnly && notification.isRead) return false;
       if (filter === 'all') return true;
       return notification.type === filter;
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   
   // Format date
   const formatDate = (dateString: string) => {
@@ -112,15 +46,51 @@ const NotificationsPage = () => {
         return <FileText className="w-5 h-5 text-blue-500" />;
       case 'grade':
         return <FileText className="w-5 h-5 text-green-500" />;
-      case 'message':
+      case 'doubt':
         return <MessageCircle className="w-5 h-5 text-purple-500" />;
-      case 'schedule':
+      case 'attendance':
         return <Calendar className="w-5 h-5 text-amber-500" />;
+      case 'emotion':
+        return <Heart className="w-5 h-5 text-pink-500" />;
+      case 'system':
+        return <AlertTriangle className="w-5 h-5 text-orange-500" />;
       default:
-        return <User className="w-5 h-5 text-gray-500" />;
+        return <Bell className="w-5 h-5 text-gray-500" />;
     }
   };
   
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
+        </div>
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+          <p className="text-gray-500">Loading notifications...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
+        </div>
+        <div className="text-center py-12">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading notifications</h3>
+          <p className="text-gray-500 mb-4">{error}</p>
+          <Button onClick={fetchNotifications} variant="outline">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -131,7 +101,7 @@ const NotificationsPage = () => {
             variant="outline" 
             size="sm"
             onClick={markAllAsRead}
-            disabled={!notifications.some(n => !n.read)}
+            disabled={!notifications.some(n => !n.isRead)}
           >
             <Check className="w-4 h-4 mr-1" />
             Mark All as Read
@@ -164,18 +134,32 @@ const NotificationsPage = () => {
               Grades
             </Button>
             <Button 
-              variant={filter === 'message' ? 'primary' : 'outline'} 
+              variant={filter === 'doubt' ? 'primary' : 'outline'} 
               size="sm"
-              onClick={() => setFilter('message')}
+              onClick={() => setFilter('doubt')}
             >
-              Messages
+              Doubts
             </Button>
             <Button 
-              variant={filter === 'schedule' ? 'primary' : 'outline'} 
+              variant={filter === 'attendance' ? 'primary' : 'outline'} 
               size="sm"
-              onClick={() => setFilter('schedule')}
+              onClick={() => setFilter('attendance')}
             >
-              Schedule
+              Attendance
+            </Button>
+            <Button 
+              variant={filter === 'emotion' ? 'primary' : 'outline'} 
+              size="sm"
+              onClick={() => setFilter('emotion')}
+            >
+              Emotions
+            </Button>
+            <Button 
+              variant={filter === 'system' ? 'primary' : 'outline'} 
+              size="sm"
+              onClick={() => setFilter('system')}
+            >
+              System
             </Button>
             
             <div className="ml-auto">
@@ -198,7 +182,7 @@ const NotificationsPage = () => {
               {filteredNotifications.map((notification) => (
                 <div 
                   key={notification.id} 
-                  className={`p-4 hover:bg-gray-50 transition-colors ${notification.read ? 'bg-white' : 'bg-indigo-50'}`}
+                  className={`p-4 hover:bg-gray-50 transition-colors ${notification.isRead ? 'bg-white' : 'bg-indigo-50'}`}
                 >
                   <div className="flex items-start">
                     <div className="flex-shrink-0 mt-0.5">
@@ -209,12 +193,12 @@ const NotificationsPage = () => {
                     
                     <div className="ml-3 flex-1">
                       <div className="flex items-center justify-between">
-                        <h3 className={`text-sm font-medium ${notification.read ? 'text-gray-900' : 'text-indigo-800'}`}>
+                        <h3 className={`text-sm font-medium ${notification.isRead ? 'text-gray-900' : 'text-indigo-800'}`}>
                           {notification.title}
                         </h3>
                         <div className="flex items-center">
                           <span className="text-xs text-gray-500">
-                            {formatDate(notification.date)}
+                            {formatDate(notification.createdAt)}
                           </span>
                           <div className="ml-2 relative">
                             <button className="p-1 rounded-full text-gray-400 hover:text-gray-500 hover:bg-gray-100">
@@ -227,7 +211,7 @@ const NotificationsPage = () => {
                         {notification.message}
                       </p>
                       
-                      {!notification.read && (
+                      {!notification.isRead && (
                         <div className="mt-2">
                           <Button 
                             variant="outline" 

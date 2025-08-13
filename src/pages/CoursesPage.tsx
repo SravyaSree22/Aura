@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
-import Card, { CardHeader, CardContent } from '../components/ui/Card';
+import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { Book, BookOpen, Calendar, Info, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';

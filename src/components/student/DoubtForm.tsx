@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import Card, { CardHeader, CardContent, CardFooter } from '../ui/Card';
-import Input from '../ui/Input';
 import Button from '../ui/Button';
 import { useData } from '../../context/DataContext';
 
@@ -39,7 +38,7 @@ const DoubtForm = () => {
       setTimeout(() => {
         setSuccessMessage('');
       }, 5000);
-    } catch (err) {
+    } catch {
       setError('Failed to submit your question. Please try again.');
     } finally {
       setIsSubmitting(false);
