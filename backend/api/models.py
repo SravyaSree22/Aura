@@ -24,6 +24,28 @@ def assignment_submission_file_path(instance, filename):
     return os.path.join('submissions', course_code, assignment_title, new_filename)
 
 
+class UserProfile(models.Model):
+    """Extended user profile information"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
+    avatar = models.URLField(blank=True, null=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
+    
+    # Settings and preferences
+    language = models.CharField(max_length=10, default='english')
+    dark_mode = models.BooleanField(default=False)
+    email_notifications = models.BooleanField(default=True)
+    push_notifications = models.BooleanField(default=True)
+    two_factor_auth = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.user.username} - Profile"
+
+
 class Course(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200)
@@ -85,6 +107,11 @@ class Grade(models.Model):
 
 
 class Assignment(models.Model):
+    TYPE_CHOICES = [
+        ('regular', 'Regular Assignment'),
+        ('quiz', 'Quiz'),
+    ]
+    
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('submitted', 'Submitted'),
@@ -93,17 +120,46 @@ class Assignment(models.Model):
     
     id = models.AutoField(primary_key=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='assignments')
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='assignments', null=True, blank=True)
     title = models.CharField(max_length=200)
     description = models.TextField()
+    assignment_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='regular')
     due_date = models.DateField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    grade = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    max_grade = models.DecimalField(max_digits=5, decimal_places=2, default=100.00)
     color = models.CharField(max_length=7, default='#4f46e5')
-    submitted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.created_at:
+            self.created_at = timezone.now()
+        super().save(*args, **kwargs)
     
     def __str__(self):
         return f"{self.course.name} - {self.title}"
+
+
+class QuizQuestion(models.Model):
+    id = models.AutoField(primary_key=True)
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name='questions')
+    question_text = models.TextField()
+    option_a = models.CharField(max_length=500)
+    option_b = models.CharField(max_length=500)
+    option_c = models.CharField(max_length=500)
+    option_d = models.CharField(max_length=500)
+    correct_answer = models.CharField(max_length=1, choices=[
+        ('A', 'A'),
+        ('B', 'B'),
+        ('C', 'C'),
+        ('D', 'D'),
+    ])
+    points = models.IntegerField(default=1)
+    order = models.IntegerField(default=0)
+    
+    class Meta:
+        ordering = ['order']
+    
+    def __str__(self):
+        return f"{self.assignment.title} - Q{self.order + 1}"
 
 
 class AssignmentSubmission(models.Model):
@@ -121,12 +177,30 @@ class AssignmentSubmission(models.Model):
     submitted_at = models.DateTimeField(null=True, blank=True)
     graded_at = models.DateTimeField(null=True, blank=True)
     submission_file = models.FileField(upload_to=assignment_submission_file_path, blank=True, null=True)
+    feedback = models.TextField(blank=True, null=True)
+    performance_analysis = models.JSONField(default=dict, blank=True)
+    detailed_feedback = models.JSONField(default=dict, blank=True)  # Store detailed feedback for each question
+    improvement_suggestions = models.TextField(blank=True, null=True)  # Suggestions for improvement
     
     class Meta:
         unique_together = ['assignment', 'student']
     
     def __str__(self):
         return f"{self.student.username} - {self.assignment.title}"
+
+
+class QuizSubmission(models.Model):
+    id = models.AutoField(primary_key=True)
+    assignment_submission = models.OneToOneField(AssignmentSubmission, on_delete=models.CASCADE, related_name='quiz_submission')
+    answers = models.JSONField(default=dict)  # {question_id: selected_answer}
+    correct_answers = models.IntegerField(default=0)
+    total_questions = models.IntegerField(default=0)
+    score_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    time_taken = models.IntegerField(default=0)  # in seconds
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.assignment_submission.student.username} - {self.assignment_submission.assignment.title}"
 
 
 class Attendance(models.Model):
@@ -141,12 +215,36 @@ class Attendance(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='attendance')
     date = models.DateField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES)
+    marked_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='attendance_marked', null=True, blank=True)
+    marked_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    notes = models.TextField(blank=True, null=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.marked_at:
+            self.marked_at = timezone.now()
+        super().save(*args, **kwargs)
     
     class Meta:
         unique_together = ['course', 'student', 'date']
     
     def __str__(self):
         return f"{self.student.username} - {self.course.name} - {self.date}"
+
+
+class AttendanceSession(models.Model):
+    id = models.AutoField(primary_key=True)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='attendance_sessions')
+    date = models.DateField()
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='attendance_sessions_created')
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        unique_together = ['course', 'date']
+    
+    def __str__(self):
+        return f"{self.course.name} - {self.date}"
 
 
 class Emotion(models.Model):
@@ -269,3 +367,47 @@ class Notification(models.Model):
             self.is_read = True
             self.read_at = timezone.now()
             self.save()
+
+
+class FAQ(models.Model):
+    """Frequently Asked Questions"""
+    id = models.AutoField(primary_key=True)
+    question = models.CharField(max_length=500)
+    answer = models.TextField()
+    category = models.CharField(max_length=50, default='general')
+    order = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['order', 'created_at']
+    
+    def __str__(self):
+        return f"{self.question[:50]}..."
+
+
+class ContactMessage(models.Model):
+    """Contact form submissions"""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('in_progress', 'In Progress'),
+        ('resolved', 'Resolved'),
+        ('closed', 'Closed'),
+    ]
+    
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    subject = models.CharField(max_length=200)
+    message = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='contact_messages')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.name} - {self.subject} - {self.status}"

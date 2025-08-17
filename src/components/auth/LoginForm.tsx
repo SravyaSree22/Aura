@@ -51,17 +51,6 @@ const LoginForm = () => {
     }
   };
 
-  // For demo purposes, provide login credentials
-  const loginAsStudent = () => {
-    setEmail('teacher1@example.com');
-    setPassword('password123');
-  };
-
-  const loginAsTeacher = () => {
-    setEmail('student1@example.com');
-    setPassword('password123');
-  };
-
   return (
     <div>
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -108,31 +97,9 @@ const LoginForm = () => {
           Log In
         </Button>
         
-        <div className="mt-4 text-center text-sm text-gray-600">
-          <p className="mb-2">For demo purposes, use:</p>
-          <div className="flex gap-2 justify-center mt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              type="button"
-              onClick={loginAsStudent}
-            >
-              Login as Student
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              type="button"
-              onClick={loginAsTeacher}
-            >
-              Login as Teacher
-            </Button>
-          </div>
-        </div>
-        
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>
-                         Don&apos;t have an account?{' '}
+            Don&apos;t have an account?{' '}
             <button
               type="button"
               className="text-indigo-600 hover:text-indigo-500 font-medium"

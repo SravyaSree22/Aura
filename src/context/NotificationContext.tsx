@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { Notification } from '../types';
 import { apiService } from '../services/api';
 
@@ -31,8 +31,13 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const initializedRef = useRef(false);
+  const loadingRef = useRef(false);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
+    if (loadingRef.current) return;
+    
+    loadingRef.current = true;
     setLoading(true);
     setError(null);
     
@@ -51,10 +56,11 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       console.error('Error fetching notifications:', err);
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
-  };
+  }, []);
 
-  const markAsRead = async (notificationId: string) => {
+  const markAsRead = useCallback(async (notificationId: string) => {
     try {
       const response = await apiService.markNotificationAsRead(notificationId);
       
@@ -62,7 +68,6 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(response.error);
       }
       
-      // Update the notification in the local state
       setNotifications(prev => 
         prev.map(notification => 
           notification.id === notificationId 
@@ -71,14 +76,13 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         )
       );
       
-      // Update unread count
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err) {
       console.error('Error marking notification as read:', err);
     }
-  };
+  }, []);
 
-  const markAllAsRead = async () => {
+  const markAllAsRead = useCallback(async () => {
     try {
       const response = await apiService.markAllNotificationsAsRead();
       
@@ -86,7 +90,6 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(response.error);
       }
       
-      // Update all notifications to read
       setNotifications(prev => 
         prev.map(notification => ({
           ...notification,
@@ -95,14 +98,13 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         }))
       );
       
-      // Reset unread count
       setUnreadCount(0);
     } catch (err) {
       console.error('Error marking all notifications as read:', err);
     }
-  };
+  }, []);
 
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     try {
       const response = await apiService.getUnreadNotificationCount();
       
@@ -116,15 +118,21 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     } catch (err) {
       console.error('Error fetching unread count:', err);
     }
-  };
-
-  // Fetch notifications and unread count on mount
-  useEffect(() => {
-    fetchNotifications();
-    fetchUnreadCount();
   }, []);
 
-  const value = {
+  // Initialize only once
+  useEffect(() => {
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      // Use setTimeout to ensure this runs after the component is fully mounted
+      setTimeout(() => {
+        fetchNotifications();
+        fetchUnreadCount();
+      }, 0);
+    }
+  }, []); // Empty dependency array
+
+  const value = useMemo(() => ({
     notifications,
     unreadCount,
     loading,
@@ -133,7 +141,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     markAsRead,
     markAllAsRead,
     fetchUnreadCount,
-  };
+  }), [notifications, unreadCount, loading, error, fetchNotifications, markAsRead, markAllAsRead, fetchUnreadCount]);
 
   return (
     <NotificationContext.Provider value={value}>

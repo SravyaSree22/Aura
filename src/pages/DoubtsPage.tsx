@@ -45,8 +45,8 @@ const DoubtsPage = () => {
       setNewQuestionCourse('');
       setShowNewQuestion(false);
       alert('Your question has been submitted anonymously!');
-    } catch (error) {
-      alert('Failed to submit question. Please try again.');
+    } catch {
+      // Error handling is done in the context
     } finally {
       setIsSubmitting(false);
     }

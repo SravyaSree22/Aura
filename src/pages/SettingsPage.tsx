@@ -1,20 +1,87 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { Bell, Globe, Lock, Shield, Smartphone, User } from 'lucide-react';
+import { apiService } from '../services/api';
+
+interface Settings {
+  language: string;
+  dark_mode: boolean;
+  email_notifications: boolean;
+  push_notifications: boolean;
+  two_factor_auth: boolean;
+}
 
 const SettingsPage = () => {
-  // General Settings
-  const [language, setLanguage] = useState('english');
-  const [darkMode, setDarkMode] = useState(false);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  
-  // Security Settings
-  const [twoFactorAuth, setTwoFactorAuth] = useState(false);
-  
+  // Settings state - now connected to database
+  const [settings, setSettings] = useState<Settings>({
+    language: 'english',
+    dark_mode: false,
+    email_notifications: true,
+    push_notifications: true,
+    two_factor_auth: false,
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [activeTab, setActiveTab] = useState('general');
+
+  // Load user settings from API
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await apiService.getUserProfile();
+        if (response.data) {
+          const profileData = response.data;
+          setSettings({
+            language: profileData.language || 'english',
+            dark_mode: profileData.dark_mode ?? false,
+            email_notifications: profileData.email_notifications ?? true,
+            push_notifications: profileData.push_notifications ?? true,
+            two_factor_auth: profileData.two_factor_auth ?? false,
+          });
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  const handleSettingChange = (key: string, value: any) => {
+    setSettings(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const handleSaveSettings = async () => {
+    setIsLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await apiService.updateUserProfile(settings);
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      setMessage({ type: 'success', text: 'Settings saved successfully!' });
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setMessage(null);
+      }, 3000);
+    } catch (error) {
+      setMessage({ 
+        type: 'error', 
+        text: error instanceof Error ? error.message : 'Failed to save settings' 
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   return (
     <div className="space-y-6">
@@ -72,8 +139,8 @@ const SettingsPage = () => {
                     Language
                   </label>
                   <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
+                    value={settings.language}
+                    onChange={(e) => handleSettingChange('language', e.target.value)}
                     className="block w-full p-2.5 bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                   >
                     <option value="english">English</option>
@@ -88,8 +155,8 @@ const SettingsPage = () => {
                   <label className="flex items-center">
                     <input
                       type="checkbox"
-                      checked={darkMode}
-                      onChange={() => setDarkMode(!darkMode)}
+                      checked={settings.dark_mode}
+                      onChange={() => handleSettingChange('dark_mode', !settings.dark_mode)}
                       className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                     />
                     <span className="ml-2 text-sm text-gray-700">Enable Dark Mode</span>
@@ -114,9 +181,14 @@ const SettingsPage = () => {
                 </div>
                 
                 <div className="pt-4 border-t border-gray-200">
-                  <Button variant="primary">
-                    Save Changes
+                  <Button variant="primary" onClick={handleSaveSettings} disabled={isLoading}>
+                    {isLoading ? 'Saving...' : 'Save Changes'}
                   </Button>
+                  {message && (
+                    <p className={`mt-2 text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                      {message.text}
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -134,8 +206,8 @@ const SettingsPage = () => {
                     <label className="flex items-center">
                       <input
                         type="checkbox"
-                        checked={emailNotifications}
-                        onChange={() => setEmailNotifications(!emailNotifications)}
+                        checked={settings.email_notifications}
+                        onChange={() => handleSettingChange('email_notifications', !settings.email_notifications)}
                         className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                       />
                       <span className="ml-2 text-sm text-gray-700">Enable Email Notifications</span>
@@ -146,9 +218,9 @@ const SettingsPage = () => {
                         <input
                           type="checkbox"
                           className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                          disabled={!emailNotifications}
+                          disabled={!settings.email_notifications}
                         />
-                        <span className={`ml-2 text-sm ${emailNotifications ? 'text-gray-700' : 'text-gray-400'}`}>
+                        <span className={`ml-2 text-sm ${settings.email_notifications ? 'text-gray-700' : 'text-gray-400'}`}>
                           Assignment updates
                         </span>
                       </label>
@@ -157,9 +229,9 @@ const SettingsPage = () => {
                         <input
                           type="checkbox"
                           className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                          disabled={!emailNotifications}
+                          disabled={!settings.email_notifications}
                         />
-                        <span className={`ml-2 text-sm ${emailNotifications ? 'text-gray-700' : 'text-gray-400'}`}>
+                        <span className={`ml-2 text-sm ${settings.email_notifications ? 'text-gray-700' : 'text-gray-400'}`}>
                           Grade notifications
                         </span>
                       </label>
@@ -168,9 +240,9 @@ const SettingsPage = () => {
                         <input
                           type="checkbox"
                           className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                          disabled={!emailNotifications}
+                          disabled={!settings.email_notifications}
                         />
-                        <span className={`ml-2 text-sm ${emailNotifications ? 'text-gray-700' : 'text-gray-400'}`}>
+                        <span className={`ml-2 text-sm ${settings.email_notifications ? 'text-gray-700' : 'text-gray-400'}`}>
                           Course announcements
                         </span>
                       </label>
@@ -179,9 +251,9 @@ const SettingsPage = () => {
                         <input
                           type="checkbox"
                           className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                          disabled={!emailNotifications}
+                          disabled={!settings.email_notifications}
                         />
-                        <span className={`ml-2 text-sm ${emailNotifications ? 'text-gray-700' : 'text-gray-400'}`}>
+                        <span className={`ml-2 text-sm ${settings.email_notifications ? 'text-gray-700' : 'text-gray-400'}`}>
                           System updates
                         </span>
                       </label>
@@ -195,8 +267,8 @@ const SettingsPage = () => {
                     <label className="flex items-center">
                       <input
                         type="checkbox"
-                        checked={pushNotifications}
-                        onChange={() => setPushNotifications(!pushNotifications)}
+                        checked={settings.push_notifications}
+                        onChange={() => handleSettingChange('push_notifications', !settings.push_notifications)}
                         className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                       />
                       <span className="ml-2 text-sm text-gray-700">Enable Push Notifications</span>
@@ -207,9 +279,9 @@ const SettingsPage = () => {
                         <input
                           type="checkbox"
                           className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                          disabled={!pushNotifications}
+                          disabled={!settings.push_notifications}
                         />
-                        <span className={`ml-2 text-sm ${pushNotifications ? 'text-gray-700' : 'text-gray-400'}`}>
+                        <span className={`ml-2 text-sm ${settings.push_notifications ? 'text-gray-700' : 'text-gray-400'}`}>
                           Due date reminders
                         </span>
                       </label>
@@ -218,9 +290,9 @@ const SettingsPage = () => {
                         <input
                           type="checkbox"
                           className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                          disabled={!pushNotifications}
+                          disabled={!settings.push_notifications}
                         />
-                        <span className={`ml-2 text-sm ${pushNotifications ? 'text-gray-700' : 'text-gray-400'}`}>
+                        <span className={`ml-2 text-sm ${settings.push_notifications ? 'text-gray-700' : 'text-gray-400'}`}>
                           New messages
                         </span>
                       </label>
@@ -229,9 +301,9 @@ const SettingsPage = () => {
                         <input
                           type="checkbox"
                           className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                          disabled={!pushNotifications}
+                          disabled={!settings.push_notifications}
                         />
-                        <span className={`ml-2 text-sm ${pushNotifications ? 'text-gray-700' : 'text-gray-400'}`}>
+                        <span className={`ml-2 text-sm ${settings.push_notifications ? 'text-gray-700' : 'text-gray-400'}`}>
                           New assignments
                         </span>
                       </label>
@@ -240,9 +312,14 @@ const SettingsPage = () => {
                 </div>
                 
                 <div className="pt-4 border-t border-gray-200">
-                  <Button variant="primary">
-                    Save Preferences
+                  <Button variant="primary" onClick={handleSaveSettings} disabled={isLoading}>
+                    {isLoading ? 'Saving...' : 'Save Preferences'}
                   </Button>
+                  {message && (
+                    <p className={`mt-2 text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                      {message.text}
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -296,8 +373,8 @@ const SettingsPage = () => {
                           type="checkbox" 
                           value="" 
                           className="sr-only peer" 
-                          checked={twoFactorAuth}
-                          onChange={() => setTwoFactorAuth(!twoFactorAuth)}
+                          checked={settings.two_factor_auth}
+                          onChange={() => handleSettingChange('two_factor_auth', !settings.two_factor_auth)}
                         />
                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                       </label>
@@ -393,9 +470,14 @@ const SettingsPage = () => {
                 </div>
                 
                 <div className="pt-4 border-t border-gray-200">
-                  <Button variant="primary">
-                    Save Accessibility Settings
+                  <Button variant="primary" onClick={handleSaveSettings} disabled={isLoading}>
+                    {isLoading ? 'Saving...' : 'Save Accessibility Settings'}
                   </Button>
+                  {message && (
+                    <p className={`mt-2 text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                      {message.text}
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>

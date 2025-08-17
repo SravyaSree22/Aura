@@ -19,6 +19,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { EmotionProvider } from './context/EmotionContext';
 import { DataProvider } from './context/DataContext';
 import { NotificationProvider } from './context/NotificationContext';
+import AttendancePage from './pages/AttendancePage';
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactElement }) => {
@@ -146,6 +147,14 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <HelpSupportPage />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/attendance" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <AttendancePage />
                   </Layout>
                 </ProtectedRoute>
               } />

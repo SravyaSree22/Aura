@@ -22,7 +22,7 @@ interface DataContextType {
   studentStats: StudentStats[];
   schedules: Schedule[];
   submitDoubt: (courseId: string, question: string) => Promise<void>;
-  submitAssignment: (assignmentId: string) => Promise<void>;
+  submitAssignment: (assignmentId: string, file?: File) => Promise<void>;
   createAssignment: (courseId: string, title: string, description: string, dueDate: string, maxGrade?: number) => Promise<void>;
   gradeAssignment: (assignmentId: string, grade: number) => Promise<void>;
   gradeStudentSubmission: (assignmentId: string, studentId: string, grade: number) => Promise<void>;
@@ -100,7 +100,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           apiService.getSchedules()
         ]);
 
-        if (coursesResponse.data) setCourses(coursesResponse.data as Course[]);
+        if (coursesResponse.data) {
+          console.log('Courses data received:', coursesResponse.data);
+          setCourses(coursesResponse.data as Course[]);
+        }
         if (gradesResponse.data) setGrades(gradesResponse.data as Grade[]);
         if (assignmentsResponse.data) setAssignments(assignmentsResponse.data as Assignment[]);
         if (attendanceResponse.data) setAttendance(attendanceResponse.data as Attendance[]);
@@ -130,33 +133,50 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const submitAssignment = async (assignmentId: string) => {
+  const submitAssignment = async (assignmentId: string, file?: File): Promise<void> => {
     try {
-      const response = await apiService.submitAssignment(assignmentId);
-      if (response.data) {
-        setAssignments(prev => 
-          prev.map(assignment => 
-            assignment.id === assignmentId 
-              ? { ...assignment, status: 'submitted' as const }
-              : assignment
-          )
-        );
+      const response = await apiService.submitAssignment(assignmentId, file);
+      if (response.error) {
+        throw new Error(response.error);
       }
+      
+      // Update the assignment in the local state
+      setAssignments(prev => 
+        prev.map(assignment => 
+          assignment.id === assignmentId 
+            ? { ...assignment, status: 'submitted' }
+            : assignment
+        )
+      );
     } catch (error) {
       console.error('Error submitting assignment:', error);
       throw error;
     }
   };
 
-  const createAssignment = async (courseId: string, title: string, description: string, dueDate: string) => {
+  const createAssignment = async (assignmentData: any): Promise<void> => {
     try {
-      const response = await apiService.createAssignment(courseId, title, description, dueDate);
-      if (response.data) {
-        setAssignments(prev => [response.data as Assignment, ...prev]);
+      const response = await apiService.createAssignment(assignmentData);
+      if (response.error) {
+        throw new Error(response.error);
       }
+      
+      // Refresh assignments to get the new one
+      await fetchAssignments();
     } catch (error) {
       console.error('Error creating assignment:', error);
       throw error;
+    }
+  };
+
+  const fetchAssignments = async () => {
+    try {
+      const response = await apiService.getAssignments();
+      if (response.data) {
+        setAssignments(response.data as Assignment[]);
+      }
+    } catch (error) {
+      console.error('Error fetching assignments:', error);
     }
   };
 
@@ -182,12 +202,11 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await apiService.gradeStudentSubmission(assignmentId, studentId, grade);
       if (response.data) {
+        // Update the assignment grade
         setAssignments(prev => 
           prev.map(assignment => 
             assignment.id === assignmentId 
-              ? { ...assignment, submissions: assignment.submissions?.map(sub => 
-                  sub.studentId === studentId ? { ...sub, grade: grade } : sub
-                ) || [] }
+              ? { ...assignment, grade: grade }
               : assignment
           )
         );

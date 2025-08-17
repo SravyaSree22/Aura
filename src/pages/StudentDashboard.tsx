@@ -7,9 +7,11 @@ import DoubtForm from '../components/student/DoubtForm';
 import BadgeCard from '../components/student/BadgeCard';
 import { useData } from '../context/DataContext';
 import { Book, Calendar, Check, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const StudentDashboard = () => {
   const { grades, assignments, attendance, badges } = useData();
+  const navigate = useNavigate();
   
   // Calculate attendance stats
   const totalClasses = attendance.length;
@@ -25,9 +27,12 @@ const StudentDashboard = () => {
     : 0;
   
   // Get upcoming assignments
-  const upcomingAssignments = assignments
-    .filter(a => a.status === 'pending')
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+  const pendingAssignments = assignments
+    .filter(a => {
+      const dueDate = new Date(a.dueDate);
+      const today = new Date();
+      return dueDate >= today;
+    })
     .slice(0, 3);
   
   // Get recent grades
@@ -73,7 +78,11 @@ const StudentDashboard = () => {
             <div>
               <p className="text-sm font-medium text-amber-600">Pending Assignments</p>
               <h3 className="text-2xl font-bold text-gray-900">
-                {assignments.filter(a => a.status === 'pending').length}
+                {assignments.filter(a => {
+                  const dueDate = new Date(a.dueDate);
+                  const today = new Date();
+                  return dueDate >= today;
+                }).length}
               </h3>
             </div>
           </CardContent>
@@ -87,7 +96,11 @@ const StudentDashboard = () => {
             <div>
               <p className="text-sm font-medium text-violet-600">Completed Assignments</p>
               <h3 className="text-2xl font-bold text-gray-900">
-                {assignments.filter(a => a.status !== 'pending').length}
+                {assignments.filter(a => {
+                  const dueDate = new Date(a.dueDate);
+                  const today = new Date();
+                  return dueDate < today;
+                }).length}
               </h3>
             </div>
           </CardContent>
@@ -152,8 +165,12 @@ const StudentDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {upcomingAssignments.map(assignment => (
-                  <AssignmentCard key={assignment.id} assignment={assignment} />
+                {pendingAssignments.map(assignment => (
+                  <AssignmentCard 
+                    key={assignment.id} 
+                    assignment={assignment} 
+                    onViewDetails={() => navigate(`/courses/${assignment.courseId}`)}
+                  />
                 ))}
               </div>
             </CardContent>

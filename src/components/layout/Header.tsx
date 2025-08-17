@@ -49,9 +49,14 @@ const Header = () => {
         
         <div className="flex items-center ml-4">
           <img
-            src={currentUser.avatar}
+            src={currentUser.profile_picture || currentUser.avatar || '/default-avatar.png'}
             alt={currentUser.name}
             className="w-8 h-8 rounded-full object-cover mr-2"
+            onError={(e) => {
+              // Fallback to default avatar if image fails to load
+              const target = e.target as HTMLImageElement;
+              target.src = '/default-avatar.png';
+            }}
           />
           <div className="hidden md:block">
             <div className="text-sm font-medium text-gray-900">{currentUser.name}</div>

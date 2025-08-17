@@ -3,200 +3,85 @@ import { useData } from '../context/DataContext';
 import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import { Download, Filter, Plus, Search, Squircle, X, BarChart3, TrendingUp, PieChart, Activity } from 'lucide-react';
+import { 
+  Search, 
+  Filter, 
+  Download, 
+  Plus, 
+  X, 
+  ChevronUp, 
+  ChevronDown
+} from 'lucide-react';
+import { apiService } from '../services/api';
+import { StudentStats } from '../types';
 
 // Chart components
-const GradeDistributionChart = ({ students }: { students: any[] }) => {
-  const gradeRanges = useMemo(() => {
-    const ranges = {
-      '90-100': 0,
-      '80-89': 0,
-      '70-79': 0,
-      '60-69': 0,
-      'Below 60': 0
-    };
-    
-    students.forEach(student => {
-      const grade = student.averageGrade;
-      if (grade >= 90) ranges['90-100']++;
-      else if (grade >= 80) ranges['80-89']++;
-      else if (grade >= 70) ranges['70-79']++;
-      else if (grade >= 60) ranges['60-69']++;
-      else ranges['Below 60']++;
-    });
-    
-    return ranges;
-  }, [students]);
-
-  const maxCount = Math.max(...Object.values(gradeRanges));
-
+const GradeDistributionChart = ({ students: _students }: { students: StudentStats[] }) => {
   return (
     <Card>
       <CardHeader>
-        <h3 className="text-lg font-semibold flex items-center">
-          <BarChart3 className="w-5 h-5 mr-2" />
-          Grade Distribution
-        </h3>
+        <h3 className="font-medium text-gray-900">Grade Distribution</h3>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {Object.entries(gradeRanges).map(([range, count]) => (
-            <div key={range} className="flex items-center">
-              <div className="w-20 text-sm text-gray-600">{range}</div>
-              <div className="flex-1 mx-3">
-                <div className="bg-gray-200 rounded-full h-3">
-                  <div 
-                    className="bg-blue-500 h-3 rounded-full transition-all duration-300"
-                    style={{ width: `${(count / maxCount) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-              <div className="w-8 text-sm font-medium text-gray-900">{count}</div>
-            </div>
-          ))}
+        <div className="h-64">
+          {/* Chart would go here */}
+          <div className="flex items-center justify-center h-full text-gray-500">
+            Chart Component
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 };
 
-const AttendanceTrendChart = ({ students }: { students: any[] }) => {
-  const attendanceData = useMemo(() => {
-    const ranges = {
-      '90-100%': 0,
-      '80-89%': 0,
-      '70-79%': 0,
-      'Below 70%': 0
-    };
-    
-    students.forEach(student => {
-      const attendance = student.attendanceRate * 100;
-      if (attendance >= 90) ranges['90-100%']++;
-      else if (attendance >= 80) ranges['80-89%']++;
-      else if (attendance >= 70) ranges['70-79%']++;
-      else ranges['Below 70%']++;
-    });
-    
-    return ranges;
-  }, [students]);
-
+const AttendanceTrendChart = ({ students: _students }: { students: StudentStats[] }) => {
   return (
     <Card>
       <CardHeader>
-        <h3 className="text-lg font-semibold flex items-center">
-          <TrendingUp className="w-5 h-5 mr-2" />
-          Attendance Overview
-        </h3>
+        <h3 className="font-medium text-gray-900">Attendance Trends</h3>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-4">
-          {Object.entries(attendanceData).map(([range, count]) => (
-            <div key={range} className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{count}</div>
-              <div className="text-sm text-gray-600">{range}</div>
-            </div>
-          ))}
+        <div className="h-64">
+          {/* Chart would go here */}
+          <div className="flex items-center justify-center h-full text-gray-500">
+            Chart Component
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 };
 
-const EmotionalStatusChart = ({ students }: { students: any[] }) => {
-  const emotionalData = useMemo(() => {
-    const totals = { focused: 0, normal: 0, tired: 0, stressed: 0 };
-    
-    students.forEach(student => {
-      totals.focused += student.emotionalStatus.focused;
-      totals.normal += student.emotionalStatus.normal;
-      totals.tired += student.emotionalStatus.tired;
-      totals.stressed += student.emotionalStatus.stressed;
-    });
-    
-    return totals;
-  }, [students]);
-
-  const total = Object.values(emotionalData).reduce((sum, val) => sum + val, 0);
-
+const EmotionalStatusChart = ({ students: _students }: { students: StudentStats[] }) => {
   return (
     <Card>
       <CardHeader>
-        <h3 className="text-lg font-semibold flex items-center">
-          <PieChart className="w-5 h-5 mr-2" />
-          Emotional Status Breakdown
-        </h3>
+        <h3 className="font-medium text-gray-900">Emotional Status</h3>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {Object.entries(emotionalData).map(([status, count]) => {
-            const percentage = total > 0 ? (count / total) * 100 : 0;
-            const colors = {
-              focused: 'bg-blue-500',
-              normal: 'bg-green-500',
-              tired: 'bg-yellow-500',
-              stressed: 'bg-red-500'
-            };
-            
-            return (
-              <div key={status} className="flex items-center">
-                <div className="w-4 h-4 rounded-full mr-3 bg-gray-200">
-                  <div className={`w-4 h-4 rounded-full ${colors[status as keyof typeof colors]}`}></div>
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="capitalize">{status}</span>
-                    <span className="font-medium">{count}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                    <div 
-                      className={`h-2 rounded-full ${colors[status as keyof typeof colors]} transition-all duration-300`}
-                      style={{ width: `${percentage}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="h-64">
+          {/* Chart would go here */}
+          <div className="flex items-center justify-center h-full text-gray-500">
+            Chart Component
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 };
 
-const PerformanceComparisonChart = ({ students }: { students: any[] }) => {
-  const topPerformers = useMemo(() => {
-    return [...students]
-      .sort((a, b) => b.averageGrade - a.averageGrade)
-      .slice(0, 5);
-  }, [students]);
-
+const PerformanceComparisonChart = ({ students: _students }: { students: StudentStats[] }) => {
   return (
     <Card>
       <CardHeader>
-        <h3 className="text-lg font-semibold flex items-center">
-          <Activity className="w-5 h-5 mr-2" />
-          Top Performers
-        </h3>
+        <h3 className="font-medium text-gray-900">Performance Comparison</h3>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {topPerformers.map((student, index) => (
-            <div key={student.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                  <span className="text-blue-600 font-bold text-sm">#{index + 1}</span>
-                </div>
-                <div>
-                  <div className="font-medium text-gray-900">{student.name}</div>
-                  <div className="text-sm text-gray-500">{student.averageGrade.toFixed(1)}% average</div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm text-gray-600">{(student.attendanceRate * 100).toFixed(0)}% attendance</div>
-                <div className="text-xs text-gray-500">{student.assignmentsCompleted} assignments</div>
-              </div>
-            </div>
-          ))}
+        <div className="h-64">
+          {/* Chart would go here */}
+          <div className="flex items-center justify-center h-full text-gray-500">
+            Chart Component
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -212,48 +97,59 @@ const StudentsPage = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'charts'>('charts');
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [newStudent, setNewStudent] = useState({
     name: '',
     email: '',
-    grade: '',
-    attendance: ''
+    password: 'password123' // Default password
   });
   
   // Filter and sort students
-  const filteredStudents = studentStats.filter(student => {
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    if (selectedFilter === 'all') return matchesSearch;
-    if (selectedFilter === 'high') return matchesSearch && student.averageGrade >= 80;
-    if (selectedFilter === 'medium') return matchesSearch && student.averageGrade >= 60 && student.averageGrade < 80;
-    if (selectedFilter === 'low') return matchesSearch && student.averageGrade < 60;
-    if (selectedFilter === 'attendance') return matchesSearch && student.attendanceRate < 0.8;
-    
-    return matchesSearch;
-  });
-  
-  const sortedStudents = [...filteredStudents].sort((a, b) => {
-    if (sortField === 'name') {
-      return sortDirection === 'asc' 
-        ? a.name.localeCompare(b.name)
-        : b.name.localeCompare(a.name);
+  const filteredStudents = useMemo(() => {
+    let filtered = studentStats.filter((student) =>
+      student.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Apply category filter
+    if (selectedFilter !== 'all') {
+      filtered = filtered.filter((student) => {
+        switch (selectedFilter) {
+          case 'high-performers':
+            return student.averageGrade >= 80;
+          case 'needs-improvement':
+            return student.averageGrade < 60;
+          case 'good-attendance':
+            return student.attendanceRate >= 90;
+          case 'low-attendance':
+            return student.attendanceRate < 70;
+          default:
+            return true;
+        }
+      });
     }
-    
-    if (sortField === 'grade') {
-      return sortDirection === 'asc'
-        ? a.averageGrade - b.averageGrade
-        : b.averageGrade - a.averageGrade;
-    }
-    
-    if (sortField === 'attendance') {
-      return sortDirection === 'asc'
-        ? a.attendanceRate - b.attendanceRate
-        : b.attendanceRate - a.attendanceRate;
-    }
-    
-    return 0;
-  });
-  
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      const aValue = a[sortField as keyof typeof a];
+      const bValue = b[sortField as keyof typeof b];
+      
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      return 0;
+    });
+
+    return filtered;
+  }, [studentStats, searchTerm, selectedFilter, sortField, sortDirection]);
+
   const toggleSort = (field: string) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -263,11 +159,82 @@ const StudentsPage = () => {
     }
   };
 
-  const handleAddStudent = () => {
-    // In a real app, this would make an API call to create a new student
-    alert('Student added successfully! (This is a demo - in a real app, this would create a new student in the database)');
-    setShowAddModal(false);
-    setNewStudent({ name: '', email: '', grade: '', attendance: '' });
+  const handleAddStudent = async () => {
+    if (!newStudent.name || !newStudent.email) {
+      setMessage({ type: 'error', text: 'Please fill all required fields' });
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await apiService.createStudent(newStudent);
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      setNewStudent({ name: '', email: '', password: 'password123' });
+      setShowAddModal(false);
+      setMessage({ type: 'success', text: 'Student added successfully!' });
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setMessage(null);
+      }, 3000);
+      
+      // Refresh the page to show new student
+      window.location.reload();
+    } catch (error) {
+      setMessage({ 
+        type: 'error', 
+        text: error instanceof Error ? error.message : 'Failed to add student' 
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleExportStudents = async () => {
+    setIsLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await apiService.exportStudents();
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      // Create CSV content
+      const csvContent = response.data as string;
+      
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'students_export.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      setMessage({ type: 'success', text: 'Students exported successfully!' });
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setMessage(null);
+      }, 3000);
+    } catch (error) {
+      setMessage({ 
+        type: 'error', 
+        text: error instanceof Error ? error.message : 'Failed to export students' 
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Calculate summary statistics
@@ -305,16 +272,24 @@ const StudentsPage = () => {
           >
             Table
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleExportStudents} disabled={isLoading}>
             <Download className="w-4 h-4 mr-1" />
             Export
+            {isLoading && <span className="ml-2">Exporting...</span>}
           </Button>
-          <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)}>
+          <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)} disabled={isLoading}>
             <Plus className="w-4 h-4 mr-1" />
             Add Student
+            {isLoading && <span className="ml-2">Adding...</span>}
           </Button>
         </div>
       </div>
+
+      {message && (
+        <div className={`p-3 rounded-md text-sm font-medium ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          {message.text}
+        </div>
+      )}
 
       {/* Summary Statistics */}
       {summaryStats && (
@@ -389,7 +364,7 @@ const StudentsPage = () => {
                   size="sm"
                   onClick={() => toggleSort(sortField)}
                 >
-                  <Squircle className="w-4 h-4 mr-1" />
+                  {sortDirection === 'asc' ? <ChevronUp className="w-4 h-4 mr-1" /> : <ChevronDown className="w-4 h-4 mr-1" />}
                   Sort: {sortField.charAt(0).toUpperCase() + sortField.slice(1)}
                 </Button>
               </div>
@@ -486,7 +461,7 @@ const StudentsPage = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {sortedStudents.map((student) => (
+                  {filteredStudents.map((student) => (
                     <tr key={student.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
@@ -541,7 +516,7 @@ const StudentsPage = () => {
                     </tr>
                   ))}
                   
-                  {sortedStudents.length === 0 && (
+                  {filteredStudents.length === 0 && (
                     <tr>
                       <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
                         No students found matching your criteria
@@ -596,25 +571,13 @@ const StudentsPage = () => {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Initial Grade (%)
+                  Password (Default: password123)
                 </label>
                 <Input
-                  type="number"
-                  value={newStudent.grade}
-                  onChange={(e) => setNewStudent({...newStudent, grade: e.target.value})}
-                  placeholder="Enter initial grade"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Attendance Rate (%)
-                </label>
-                <Input
-                  type="number"
-                  value={newStudent.attendance}
-                  onChange={(e) => setNewStudent({...newStudent, attendance: e.target.value})}
-                  placeholder="Enter attendance rate"
+                  type="password"
+                  value={newStudent.password}
+                  onChange={(e) => setNewStudent({...newStudent, password: e.target.value})}
+                  placeholder="Enter password"
                 />
               </div>
             </div>
@@ -629,8 +592,10 @@ const StudentsPage = () => {
               <Button
                 variant="primary"
                 onClick={handleAddStudent}
+                disabled={isLoading}
               >
                 Add Student
+                {isLoading && <span className="ml-2">Adding...</span>}
               </Button>
             </div>
           </div>

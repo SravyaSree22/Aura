@@ -1,5 +1,10 @@
 from django.contrib import admin
-from .models import Course, Grade, Assignment, Attendance, Emotion, Badge, Doubt, StudentStats, AssignmentSubmission, Schedule, Notification
+from .models import (
+    Course, Grade, Assignment, Attendance, Emotion, Badge, Doubt, 
+    StudentStats, AssignmentSubmission, Schedule, Notification,
+    UserProfile, FAQ, ContactMessage, QuizQuestion, QuizSubmission,
+    AttendanceSession
+)
 
 # Register your models here.
 admin.site.register(Course)
@@ -12,6 +17,12 @@ admin.site.register(Doubt)
 admin.site.register(StudentStats)
 admin.site.register(AssignmentSubmission)
 admin.site.register(Schedule)
+admin.site.register(UserProfile)
+admin.site.register(FAQ)
+admin.site.register(ContactMessage)
+admin.site.register(QuizQuestion)
+admin.site.register(QuizSubmission)
+admin.site.register(AttendanceSession)
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):

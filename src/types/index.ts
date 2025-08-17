@@ -3,7 +3,10 @@ export interface User {
   name: string;
   email: string;
   role: 'student' | 'teacher';
-  avatar: string;
+  avatar?: string;
+  profile_picture?: string;
+  phone?: string;
+  bio?: string;
 }
 
 export interface Course {
@@ -40,38 +43,86 @@ export interface Grade {
   date: string;
 }
 
-export interface AssignmentSubmission {
-  id: string;
-  assignmentId: string;
-  studentId: string;
-  studentName: string;
-  studentEmail: string;
-  status: 'pending' | 'submitted' | 'graded';
-  grade?: number;
-  submittedAt?: string;
-  gradedAt?: string;
-}
-
 export interface Assignment {
   id: string;
   courseId: string;
   courseName: string;
   title: string;
   description: string;
+  assignment_type: 'regular' | 'quiz';
   dueDate: string;
+  maxGrade: number;
+  color: string;
+  createdAt: string;
+  questions?: QuizQuestion[];
+  submission_count: number;
+  user_submission_status?: 'pending' | 'submitted' | 'graded' | null;
+  user_submission_grade?: number | null;
+  user_submitted_at?: string | null;
+}
+
+export interface QuizQuestion {
+  id: number;
+  question_text: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  points: number;
+  order: number;
+  correct_answer?: string; // Only available for teachers
+}
+
+export interface QuizSubmission {
+  id: number;
+  answers: Record<string, string>;
+  correct_answers: number;
+  total_questions: number;
+  score_percentage: number;
+  time_taken: number;
+  submitted_at: string;
+}
+
+export interface AssignmentSubmission {
+  id: string;
+  assignmentId: string;
+  assignmentTitle: string;
+  studentId: string;
+  studentName: string;
   status: 'pending' | 'submitted' | 'graded';
   grade?: number;
-  color: string;
   submittedAt?: string;
-  submissions?: AssignmentSubmission[];
+  gradedAt?: string;
+  feedback?: string;
+  detailed_feedback?: Record<string, any>;
+  improvement_suggestions?: string;
+  performance_analysis?: any;
+  submission_file?: string;
+  quiz_submission?: QuizSubmission;
 }
 
 export interface Attendance {
   id: string;
   courseId: string;
   courseName: string;
+  studentId: string;
+  studentName: string;
   date: string;
   status: 'present' | 'absent' | 'late';
+  markedBy?: string;
+  markedAt: string;
+  notes?: string;
+}
+
+export interface AttendanceSession {
+  id: number;
+  course: Course;
+  date: string;
+  created_by: User;
+  created_at: string;
+  is_active: boolean;
+  notes?: string;
+  attendance_count: number;
 }
 
 export interface Emotion {

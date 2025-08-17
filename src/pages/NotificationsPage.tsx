@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNotifications } from '../context/NotificationContext';
 import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -8,10 +8,6 @@ const NotificationsPage = () => {
   const { notifications, loading, error, fetchNotifications, markAsRead, markAllAsRead } = useNotifications();
   const [filter, setFilter] = useState('all');
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
-
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
   
   // Filter notifications
   const filteredNotifications = notifications

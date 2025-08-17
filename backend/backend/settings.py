@@ -51,6 +51,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'api.middleware.CSRFExemptMiddleware',
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -120,6 +121,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Media files (Uploaded files)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -152,16 +157,34 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3000",
 ]
 
+# CSRF exempt URLs for login/signup
+CSRF_EXEMPT_URLS = [
+    '/api/users/login/',
+    '/api/users/signup/',
+]
+
 # Session settings
 SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_HTTPONLY = False  # Allow JavaScript access for better compatibility
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SESSION_COOKIE_AGE = 86400  # 24 hours
+SESSION_SAVE_EVERY_REQUEST = True  # Save session on every request
 
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.MultiPartParser',
+        'rest_framework.parsers.FormParser',
     ],
 }

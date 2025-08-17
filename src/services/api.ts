@@ -1,12 +1,58 @@
+// API service for making HTTP requests to the backend
 const API_BASE_URL = 'http://localhost:8050/api';
 
-interface ApiResponse<T> {
-  data: T;
+interface ApiResponse<T = unknown> {
+  data?: T;
   error?: string;
+  message?: string;
+}
+
+interface AssignmentData {
+  title: string;
+  description: string;
+  due_date: string;
+  max_grade?: number;
+}
+
+interface UserProfileData {
+  phone?: string;
+  bio?: string;
+  language?: string;
+  dark_mode?: boolean;
+  email_notifications?: boolean;
+  push_notifications?: boolean;
+  two_factor_auth?: boolean;
+}
+
+interface ContactMessageData {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}
+
+interface StudentData {
+  name: string;
+  email: string;
+  password?: string;
 }
 
 class ApiService {
-  private getCsrfToken(): string | null {
+  private async getCsrfToken(): Promise<string | null> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/csrf_token/`, {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.csrfToken || null;
+      }
+    } catch (error) {
+      console.error('Error getting CSRF token:', error);
+    }
+    
+    // Fallback to cookie method
     const name = 'csrftoken';
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -22,15 +68,18 @@ class ApiService {
     return cookieValue;
   }
 
-  // eslint-disable-next-line no-undef
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+  private async request<T>(endpoint: string, options: { method?: string; headers?: Record<string, string>; body?: string | FormData; credentials?: 'include' | 'omit' | 'same-origin' } = {}): Promise<ApiResponse<T>> {
     try {
-      // Get CSRF token for POST requests
-      const csrfToken = this.getCsrfToken();
+      // Get fresh CSRF token for POST requests (to handle session changes)
+      const csrfToken = await this.getCsrfToken();
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
         ...options.headers as Record<string, string>,
       };
+
+      // Only set Content-Type for JSON requests, not for FormData
+      if (!(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+      }
 
       // Add CSRF token to headers for POST requests
       if (options.method === 'POST' && csrfToken) {
@@ -39,7 +88,6 @@ class ApiService {
 
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         headers,
-        // eslint-disable-next-line no-undef
         credentials: 'include',
         ...options,
       });
@@ -81,31 +129,150 @@ class ApiService {
   }
 
   // Assignment endpoints
-  async getAssignments() {
+  async getAssignments(): Promise<ApiResponse> {
     return this.request('/assignments/');
   }
 
-  async createAssignment(courseId: string, title: string, description: string, dueDate: string) {
-    const courseIdNum = courseId.replace('c', '');
+  async createAssignment(data: AssignmentData): Promise<ApiResponse> {
     return this.request('/assignments/', {
       method: 'POST',
-      body: JSON.stringify({
-        course_id: courseIdNum,
-        title,
-        description,
-        due_date: dueDate,
-        status: 'pending',
-        grade: null,
-        color: '#4f46e5'
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
     });
   }
 
-  async submitAssignment(assignmentId: string) {
-    const id = assignmentId.replace('a', '');
-    return this.request(`/assignments/${id}/submit/`, {
-      method: 'POST',
+  async updateAssignment(assignmentId: string, data: AssignmentData): Promise<ApiResponse> {
+    return this.request(`/assignments/${assignmentId}/`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
     });
+  }
+
+  async deleteAssignment(assignmentId: string): Promise<ApiResponse> {
+    return this.request(`/assignments/${assignmentId}/`, {
+      method: 'DELETE'
+    });
+  }
+
+  async getAssignmentQuestions(assignmentId: string): Promise<ApiResponse> {
+    return this.request(`/assignments/${assignmentId}/questions/`);
+  }
+
+  async addQuizQuestions(assignmentId: string, questions: any[]): Promise<ApiResponse> {
+    return this.request(`/assignments/${assignmentId}/add_questions/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questions })
+    });
+  }
+
+  async submitQuiz(assignmentId: string, answers: Record<string, string>, timeTaken: number): Promise<ApiResponse> {
+    return this.request(`/assignments/${assignmentId}/submit_quiz/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers, time_taken: timeTaken })
+    });
+  }
+
+  // User Profile endpoints
+  async getUserProfile(): Promise<ApiResponse<UserProfileData>> {
+    return this.request('/profiles/my_profile/');
+  }
+
+  async updateUserProfile(data: UserProfileData): Promise<ApiResponse> {
+    return this.request('/profiles/my_profile/', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  }
+
+  // Profile management
+  async uploadAvatar(file: File): Promise<ApiResponse<{ avatar_url: string }>> {
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const response = await fetch(`${API_BASE_URL}/users/upload_avatar/`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { data };
+    } catch (error) {
+      return { data: undefined, error: error instanceof Error ? error.message : 'Failed to upload avatar' };
+    }
+  }
+
+  // FAQ endpoints
+  async getFAQs(): Promise<ApiResponse> {
+    return this.request('/faqs/');
+  }
+
+  async searchFAQs(query: string): Promise<ApiResponse> {
+    return this.request(`/faqs/search/?q=${encodeURIComponent(query)}`);
+  }
+
+  async getFAQsByCategory(category: string): Promise<ApiResponse> {
+    return this.request(`/faqs/by_category/?category=${encodeURIComponent(category)}`);
+  }
+
+  // Contact form endpoints
+  async submitContactMessage(data: ContactMessageData): Promise<ApiResponse> {
+    return this.request('/contact/submit/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  }
+
+  // Student Management endpoints (teachers only)
+  async createStudent(data: StudentData): Promise<ApiResponse> {
+    return this.request('/student-management/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  }
+
+  async bulkCreateStudents(students: StudentData[]): Promise<ApiResponse> {
+    return this.request('/student-management/bulk_create/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ students })
+    });
+  }
+
+  async exportStudents(): Promise<ApiResponse<string>> {
+    return this.request<string>('/student-management/export/');
+  }
+
+  async submitAssignment(assignmentId: string, file?: File) {
+    const id = assignmentId.replace('a', '');
+    
+    if (file) {
+      // File upload submission
+      const formData = new FormData();
+      formData.append('submission_file', file);
+      
+      return this.request(`/assignments/${id}/submit/`, {
+        method: 'POST',
+        body: formData,
+        headers: {}, // Let browser set Content-Type for FormData
+      });
+    } else {
+      // Simple submission (for backward compatibility)
+      return this.request(`/assignments/${id}/submit/`, {
+        method: 'POST',
+      });
+    }
   }
 
   async gradeAssignment(assignmentId: string, grade: number) {
@@ -116,15 +283,17 @@ class ApiService {
     });
   }
 
-  async gradeStudentSubmission(assignmentId: string, studentId: string, grade: number) {
-    const id = assignmentId.replace('a', '');
-    return this.request(`/assignments/${id}/grade/`, {
+  async gradeStudentSubmission(submissionId: string, grade: number, feedback?: string) {
+    const id = submissionId.replace('sub', '');
+    return this.request(`/assignmentsubmissions/${id}/grade/`, {
       method: 'POST',
-      body: JSON.stringify({ 
-        student_id: studentId,
-        grade 
-      }),
+      body: JSON.stringify({ grade, feedback }),
     });
+  }
+
+  async downloadSubmission(submissionId: string) {
+    const id = submissionId.replace('sub', '');
+    return this.request(`/assignmentsubmissions/${id}/download/`);
   }
 
   async getAssignmentSubmissions() {
@@ -132,8 +301,45 @@ class ApiService {
   }
 
   // Attendance endpoints
-  async getAttendance() {
+  async getAttendance(): Promise<ApiResponse> {
     return this.request('/attendance/');
+  }
+
+  async markAttendance(courseId: string, date: string, attendanceData: any[]): Promise<ApiResponse> {
+    return this.request('/attendance/mark_attendance/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        course_id: courseId,
+        date: date,
+        attendance: attendanceData
+      })
+    });
+  }
+
+  async getCourseAttendance(courseId: string, date?: string): Promise<ApiResponse> {
+    const params = new URLSearchParams({ course_id: courseId });
+    if (date) {
+      params.append('date', date);
+    }
+    return this.request(`/attendance/course_attendance/?${params}`);
+  }
+
+  async getStudentAttendanceSummary(studentId?: string): Promise<ApiResponse> {
+    const params = studentId ? new URLSearchParams({ student_id: studentId }) : '';
+    return this.request(`/attendance/student_attendance_summary/${params ? '?' + params : ''}`);
+  }
+
+  async getAttendanceSessions(): Promise<ApiResponse> {
+    return this.request('/attendance-sessions/');
+  }
+
+  async createAttendanceSession(data: { course_id: string; date: string; notes?: string }): Promise<ApiResponse> {
+    return this.request('/attendance-sessions/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
   }
 
   // Emotion endpoints
@@ -184,6 +390,44 @@ class ApiService {
   // Schedule endpoints
   async getSchedules() {
     return this.request('/schedules/');
+  }
+
+  // Profile picture upload
+  async uploadProfilePicture(file: File): Promise<ApiResponse> {
+    try {
+      const formData = new FormData();
+      formData.append('profile_picture', file);
+      
+      // Get CSRF token
+      const csrfToken = await this.getCsrfToken();
+      const headers: Record<string, string> = {};
+      
+      if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/profiles/upload_profile_picture/`, {
+        method: 'POST',
+        headers,
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { data };
+    } catch (error) {
+      return { data: null as any, error: error instanceof Error ? error.message : 'Failed to upload profile picture' };
+    }
+  }
+
+  // Quiz results
+  async getQuizResults(assignmentId: string, studentId?: string): Promise<ApiResponse> {
+    const params = studentId ? new URLSearchParams({ student_id: studentId }) : '';
+    return this.request(`/assignments/${assignmentId}/quiz_results/${params ? '?' + params : ''}`);
   }
 
   async getMySchedule() {
@@ -244,6 +488,28 @@ class ApiService {
 
   async getUnreadNotificationCount() {
     return this.request('/notifications/unread_count/');
+  }
+
+  // Course students
+  async getCourseStudents(courseId: string): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/courses/${courseId}/students/`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { data };
+    } catch (error) {
+      return { data: undefined, error: error instanceof Error ? error.message : 'Failed to fetch course students' };
+    }
   }
 }
 

@@ -1,23 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import ProfilePictureUpload from '../components/ui/ProfilePictureUpload';
 import { Camera, Mail, Phone, Save, User } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { apiService } from '../services/api';
 
 const ProfilePage = () => {
   const { currentUser } = useAuth();
-  const { badges, grades } = useData();
+  const { badges, grades, courses } = useData();
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
-  // Form state - in a real app, this would be properly typed
+  // Form state - now using database-driven data
   const [formData, setFormData] = useState({
     name: currentUser?.name || '',
     email: currentUser?.email || '',
-    phone: '(555) 123-4567', // User data
-    bio: 'Educational enthusiast passionate about continuous learning and growth.', // User data
+    phone: '',
+    bio: '',
   });
+
+  // Calculate course count based on user role
+  const courseCount = currentUser?.role === 'student' 
+    ? courses.length // For students, show all courses they can access
+    : courses.length; // For teachers, show all courses they can access
+
+  // Load user profile data
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const response = await apiService.getUserProfile();
+        if (response.data) {
+          const profileData = response.data as { phone?: string; bio?: string };
+          setFormData(prev => ({
+            ...prev,
+            phone: profileData.phone || '',
+            bio: profileData.bio || '',
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+      }
+    };
+
+    if (currentUser) {
+      loadProfile();
+    }
+  }, [currentUser]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -27,10 +59,35 @@ const ProfilePage = () => {
     }));
   };
   
-  const handleSave = () => {
-    // In a real app, this would call an API to update user profile
-    setIsEditing(false);
-    alert('Profile updated successfully!');
+  const handleSave = async () => {
+    setIsLoading(true);
+    setMessage(null);
+    
+    try {
+      const response = await apiService.updateUserProfile({
+        phone: formData.phone,
+        bio: formData.bio,
+      });
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      setIsEditing(false);
+      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setMessage(null);
+      }, 3000);
+    } catch (error) {
+      setMessage({ 
+        type: 'error', 
+        text: error instanceof Error ? error.message : 'Failed to update profile' 
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   // Calculate average grade
@@ -42,24 +99,29 @@ const ProfilePage = () => {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
       
+      {message && (
+        <div className={`p-3 rounded-lg text-center ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          {message.text}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile Summary */}
         <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardContent className="p-6">
               <div className="flex flex-col items-center">
-                <div className="relative">
-                  <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg">
-                    <img 
-                      src={currentUser?.avatar} 
-                      alt={currentUser?.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <button className="absolute bottom-0 right-0 bg-indigo-600 text-white p-2 rounded-full shadow-lg hover:bg-indigo-700 transition-colors">
-                    <Camera size={16} />
-                  </button>
-                </div>
+                <ProfilePictureUpload 
+                  onUploadSuccess={(url) => {
+                    // Update the current user's profile picture
+                    if (currentUser) {
+                      const updatedUser = { ...currentUser, profile_picture: url };
+                      // You might want to update the auth context here
+                      console.log('Profile picture updated:', url);
+                    }
+                  }}
+                  className="mb-4"
+                />
                 
                 <h2 className="mt-4 text-xl font-bold text-gray-900">{currentUser?.name}</h2>
                 <p className="text-gray-500 capitalize">{currentUser?.role}</p>
@@ -83,9 +145,7 @@ const ProfilePage = () => {
                     <div className="text-xs text-gray-500">Badges Earned</div>
                   </div>
                   <div className="bg-green-50 p-3 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-green-600">
-                      {currentUser?.role === 'student' ? '4' : '3'}
-                    </div>
+                    <div className="text-2xl font-bold text-green-600">{courseCount}</div>
                     <div className="text-xs text-gray-500">
                       {currentUser?.role === 'student' ? 'Courses Enrolled' : 'Courses Teaching'}
                     </div>
@@ -149,9 +209,10 @@ const ProfilePage = () => {
                     <Button 
                       variant="primary"
                       onClick={handleSave}
+                      disabled={isLoading}
                     >
-                      <Save className="w-4 h-4 mr-1" />
-                      Save Changes
+                      {isLoading ? 'Saving...' : 'Save Changes'}
+                      <Save className="w-4 h-4 ml-2" />
                     </Button>
                   </div>
                 )}
