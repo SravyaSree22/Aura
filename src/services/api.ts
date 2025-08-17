@@ -1,5 +1,5 @@
 // API service for making HTTP requests to the backend
-const API_BASE_URL = 'http://localhost:8050/api';
+const API_BASE_URL = 'http://localhost:8000/api';
 
 interface ApiResponse<T = unknown> {
   data?: T;
@@ -93,7 +93,8 @@ class ApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const data = await response.json();
@@ -121,6 +122,22 @@ class ApiService {
   // Course endpoints
   async getCourses() {
     return this.request('/courses/');
+  }
+
+  async createCourse(data: { name: string; code: string; description?: string }) {
+    // Remove description field and add required fields with defaults
+    const courseData = {
+      name: data.name,
+      code: data.code,
+      schedule: 'TBD', // Default schedule
+      color: '#4f46e5' // Default color
+    };
+    
+    return this.request('/courses/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(courseData)
+    });
   }
 
   // Grade endpoints
@@ -297,7 +314,7 @@ class ApiService {
   }
 
   async getAssignmentSubmissions() {
-    return this.request('/assignment-submissions/');
+    return this.request('/assignmentsubmissions/');
   }
 
   // Attendance endpoints
@@ -424,6 +441,70 @@ class ApiService {
     }
   }
 
+  // Change password
+  async changePassword(currentPassword: string, newPassword: string): Promise<ApiResponse> {
+    try {
+      const csrfToken = await this.getCsrfToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/users/change_password/`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+        }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { data };
+    } catch (error) {
+      return { data: null as any, error: error instanceof Error ? error.message : 'Failed to change password' };
+    }
+  }
+
+  // Logout all devices
+  async logoutAllDevices(): Promise<ApiResponse> {
+    try {
+      const csrfToken = await this.getCsrfToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/users/logout_all_devices/`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { data };
+    } catch (error) {
+      return { data: null as any, error: error instanceof Error ? error.message : 'Failed to logout all devices' };
+    }
+  }
+
   // Quiz results
   async getQuizResults(assignmentId: string, studentId?: string): Promise<ApiResponse> {
     const params = studentId ? new URLSearchParams({ student_id: studentId }) : '';
@@ -493,7 +574,9 @@ class ApiService {
   // Course students
   async getCourseStudents(courseId: string): Promise<ApiResponse<any[]>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/courses/${courseId}/students/`, {
+      // Remove 'c' prefix if present
+      const courseIdNum = courseId.replace('c', '');
+      const response = await fetch(`${API_BASE_URL}/courses/${courseIdNum}/students/`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -510,6 +593,22 @@ class ApiService {
     } catch (error) {
       return { data: undefined, error: error instanceof Error ? error.message : 'Failed to fetch course students' };
     }
+  }
+
+  async enrollStudent(courseId: string, email: string): Promise<ApiResponse> {
+    const courseIdNum = courseId.replace('c', '');
+    return this.request(`/courses/${courseIdNum}/enroll_student/`, {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async removeStudent(courseId: string, studentId: string): Promise<ApiResponse> {
+    const courseIdNum = courseId.replace('c', '');
+    return this.request(`/courses/${courseIdNum}/remove_student/`, {
+      method: 'POST',
+      body: JSON.stringify({ student_id: studentId }),
+    });
   }
 }
 

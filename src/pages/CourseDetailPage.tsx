@@ -59,12 +59,38 @@ const CourseDetailPage = () => {
     correct_answer: 'A',
     points: 1
   });
+  const [courseStudents, setCourseStudents] = useState<any[]>([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
 
   // Handle course ID with or without 'c' prefix
   const normalizedCourseId = courseId?.startsWith('c') ? courseId : `c${courseId}`;
   const course = courses.find(c => c.id === normalizedCourseId);
   const isTeacher = currentUser?.role === 'teacher';
   const isStudent = currentUser?.role === 'student';
+
+  // Fetch course students when component mounts or course changes
+  React.useEffect(() => {
+    if (normalizedCourseId && isTeacher && course && !loading) {
+      fetchCourseStudents();
+    }
+  }, [normalizedCourseId, isTeacher, course, loading]);
+
+  const fetchCourseStudents = async () => {
+    if (!normalizedCourseId || !isTeacher) return;
+    
+    setStudentsLoading(true);
+    try {
+      const response = await apiService.getCourseStudents(normalizedCourseId);
+      if (response.data) {
+        setCourseStudents(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching course students:', error);
+      setCourseStudents([]);
+    } finally {
+      setStudentsLoading(false);
+    }
+  };
 
   // Debug information
   console.log('CourseDetailPage Debug:', {
@@ -541,12 +567,19 @@ const CourseDetailPage = () => {
                 {courseGrades.map((grade) => (
                   <Card key={grade.id}>
                     <CardContent className="p-4">
-                      <div className="flex justify-between items-center">
-                        <div>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
                           <h4 className="font-medium text-gray-900">{grade.title}</h4>
                           <p className="text-sm text-gray-600">{grade.courseName}</p>
+                          {grade.feedback && (
+                            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                              <p className="text-sm text-blue-800">
+                                <strong>Feedback:</strong> {grade.feedback}
+                              </p>
+                            </div>
+                          )}
                         </div>
-                        <div className="text-right">
+                        <div className="text-right ml-4">
                           <div className="text-lg font-bold text-gray-900">{grade.value}%</div>
                           <div className="text-sm text-gray-500">out of {grade.maxValue}%</div>
                         </div>
@@ -607,8 +640,9 @@ const CourseDetailPage = () => {
         {activeTab === 'students' && isTeacher && (
           <div className="space-y-6">
             <StudentList 
-              students={[]} // This would need to be populated with actual student data
+              students={courseStudents}
               courseId={normalizedCourseId}
+              onStudentEnrolled={fetchCourseStudents}
             />
           </div>
         )}

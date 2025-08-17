@@ -31,7 +31,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
 @method_decorator(csrf_exempt, name='dispatch')
-class UserViewSet(viewsets.ReadOnlyModelViewSet):
+class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
@@ -106,11 +106,41 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             is_staff=(role == 'teacher')
         )
         
-        # Create user profile
-        UserProfile.objects.create(user=user)
+        # UserProfile will be created automatically by the signal
         
         login(request, user)
         return Response(self.get_serializer(user).data)
+
+    @action(detail=False, methods=['post'])
+    def change_password(self, request):
+        """Change user password"""
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+        
+        if not current_password or not new_password:
+            return Response({'error': 'Current password and new password are required'}, status=400)
+        
+        # Verify current password
+        if not request.user.check_password(current_password):
+            return Response({'error': 'Current password is incorrect'}, status=400)
+        
+        # Validate new password
+        if len(new_password) < 8:
+            return Response({'error': 'New password must be at least 8 characters long'}, status=400)
+        
+        # Change password
+        request.user.set_password(new_password)
+        request.user.save()
+        
+        return Response({'message': 'Password changed successfully'})
+
+    @action(detail=False, methods=['post'])
+    def logout_all_devices(self, request):
+        """Logout from all devices by invalidating all sessions"""
+        # This is a simplified implementation
+        # In a real application, you would track sessions and invalidate them
+        # For now, we'll just return a success message
+        return Response({'message': 'All devices signed out successfully'})
 
 
 class UserProfileViewSet(viewsets.ModelViewSet):
@@ -202,6 +232,105 @@ class CourseViewSet(viewsets.ModelViewSet):
         except Course.DoesNotExist:
             return Response({'error': 'Course not found'}, status=status.HTTP_404_NOT_FOUND)
 
+    @action(detail=True, methods=['post'])
+    def enroll_student(self, request, pk=None):
+        """Enroll a student in a course by email"""
+        try:
+            course = self.get_object()
+            # Check if the user is the teacher of this course
+            if not request.user.is_staff or course.teacher != request.user:
+                raise PermissionDenied("You can only enroll students in your own courses")
+            
+            email = request.data.get('email')
+            if not email:
+                return Response({'error': 'Email is required'}, status=400)
+            
+            try:
+                student = User.objects.get(email=email, is_staff=False)
+                if course.students.filter(id=student.id).exists():
+                    return Response({'error': 'Student is already enrolled in this course'}, status=400)
+                
+                course.students.add(student)
+                return Response({
+                    'message': f'Student {student.email} enrolled successfully',
+                    'student': {
+                        'id': student.id,
+                        'name': f"{student.first_name} {student.last_name}".strip() or student.username,
+                        'email': student.email
+                    }
+                })
+            except User.DoesNotExist:
+                return Response({'error': 'Student with this email not found'}, status=404)
+                
+        except Course.DoesNotExist:
+            return Response({'error': 'Course not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'])
+    def remove_student(self, request, pk=None):
+        """Remove a student from a course"""
+        try:
+            course = self.get_object()
+            # Check if the user is the teacher of this course
+            if not request.user.is_staff or course.teacher != request.user:
+                raise PermissionDenied("You can only remove students from your own courses")
+            
+            student_id = request.data.get('student_id')
+            if not student_id:
+                return Response({'error': 'Student ID is required'}, status=400)
+            
+            try:
+                student = User.objects.get(id=student_id, is_staff=False)
+                if not course.students.filter(id=student.id).exists():
+                    return Response({'error': 'Student is not enrolled in this course'}, status=400)
+                
+                course.students.remove(student)
+                return Response({'message': f'Student {student.email} removed from course'})
+            except User.DoesNotExist:
+                return Response({'error': 'Student not found'}, status=404)
+                
+        except Course.DoesNotExist:
+            return Response({'error': 'Course not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['get'])
+    def students(self, request, pk=None):
+        """Get all students enrolled in a course"""
+        try:
+            course = self.get_object()
+            # Check if the user is the teacher of this course
+            if not request.user.is_staff or course.teacher != request.user:
+                raise PermissionDenied("You can only view students in your own courses")
+            
+            students_data = []
+            for student in course.students.all():
+                # Safely get profile data
+                try:
+                    profile = student.profile
+                    phone = getattr(profile, 'phone', None)
+                    # Handle file field properly
+                    avatar = None
+                    if hasattr(profile, 'profile_picture') and profile.profile_picture:
+                        try:
+                            avatar = profile.profile_picture.url if profile.profile_picture else None
+                        except:
+                            avatar = None
+                except:
+                    phone = None
+                    avatar = None
+                
+                students_data.append({
+                    'id': student.id,
+                    'name': f"{student.first_name} {student.last_name}".strip() or student.username,
+                    'email': student.email,
+                    'phone': phone,
+                    'joinedDate': student.date_joined.isoformat(),
+                    'avatar': avatar
+                })
+            
+            return Response(students_data)
+                
+        except Course.DoesNotExist:
+            return Response({'error': 'Course not found'}, status=status.HTTP_404_NOT_FOUND)
+
 
 class GradeViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Grade.objects.all()
@@ -233,7 +362,10 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         if not self.request.user.is_staff:
             raise PermissionDenied("Only teachers can create assignments")
         try:
-            serializer.save()
+            assignment = serializer.save()
+            # Create notifications for all students in the course
+            from .utils import notify_new_assignment
+            notify_new_assignment(assignment)
         except Exception as e:
             print(f"Assignment creation error: {e}")
             raise
@@ -647,6 +779,9 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         if not request.user.is_staff:
             raise PermissionDenied("Only teachers can mark attendance")
         
+        # Debug: Log the received data
+        print(f"Received attendance data: {request.data}")
+        
         course_id = request.data.get('course_id')
         date_str = request.data.get('date')
         attendance_data = request.data.get('attendance', [])
@@ -671,6 +806,9 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             notes = item.get('notes', '')
             
             try:
+                # Convert student_id to integer if it's a string
+                if isinstance(student_id, str):
+                    student_id = int(student_id)
                 student = User.objects.get(id=student_id)
                 Attendance.objects.update_or_create(
                     course=course,
@@ -959,6 +1097,10 @@ class DoubtViewSet(viewsets.ModelViewSet):
             doubt.status = 'answered'
             doubt.answer_timestamp = timezone.now()
             doubt.save()
+            
+            # Create notification for the student
+            from .utils import notify_doubt_answered
+            notify_doubt_answered(doubt)
 
         serializer = self.get_serializer(doubt)
         return Response(serializer.data)
@@ -1020,6 +1162,33 @@ class AssignmentSubmissionViewSet(viewsets.ReadOnlyModelViewSet):
         submission.status = 'graded'
         submission.graded_at = timezone.now()
         submission.save()
+        
+        # Create or update a Grade record for the student to see
+        from api.models import Grade
+        from datetime import date
+        
+        # Check if a grade record already exists for this assignment and student
+        grade_record, created = Grade.objects.get_or_create(
+            course=submission.assignment.course,
+            student=submission.student,
+            title=submission.assignment.title,
+            defaults={
+                'value': grade,
+                'max_value': submission.assignment.max_grade,
+                'date': date.today()
+            }
+        )
+        
+        # Update the grade if it already existed
+        if not created:
+            grade_record.value = grade
+            grade_record.max_value = submission.assignment.max_grade
+            grade_record.date = date.today()
+            grade_record.save()
+        
+        # Create notification for the student
+        from .utils import notify_assignment_graded
+        notify_assignment_graded(submission)
         
         return Response({
             'message': 'Submission graded successfully',

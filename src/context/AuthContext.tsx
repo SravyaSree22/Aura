@@ -11,6 +11,7 @@ interface AuthContextType {
   error: string | null;
   isStudent: () => boolean;
   isTeacher: () => boolean;
+  updateUserProfile: (updates: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   error: null,
   isStudent: () => false,
   isTeacher: () => false,
+  updateUserProfile: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -35,7 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const initializeApp = async () => {
       try {
         // Get CSRF token first
-        const csrfResponse = await fetch('http://localhost:8050/api/users/csrf_token/', {
+        const csrfResponse = await fetch('http://localhost:8000/api/users/csrf_token/', {
           credentials: 'include',
         });
         
@@ -62,7 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             
             // Validate session by making a request to a protected endpoint
             try {
-              const response = await fetch('http://localhost:8050/api/assignments/', {
+              const response = await fetch('http://localhost:8000/api/assignments/', {
                 credentials: 'include',
               });
               
@@ -73,7 +75,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                   name: userData.name,
                   email: userData.email,
                   role: userData.role as 'student' | 'teacher',
-                  avatar: userData.avatar || ''
+                  avatar: userData.avatar || '',
+                  profile_picture: userData.profile_picture || ''
                 };
                 setCurrentUser(validUser);
                 console.log('Session validated successfully');
@@ -117,7 +120,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         // Validate session by making a request to a protected endpoint
         try {
-          const sessionResponse = await fetch('http://localhost:8050/api/assignments/', {
+          const sessionResponse = await fetch('http://localhost:8000/api/assignments/', {
             credentials: 'include',
           });
           
@@ -169,7 +172,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     try {
       // Call Django logout endpoint to clear session
-      await fetch('http://localhost:8050/api/auth/logout/', {
+      await fetch('http://localhost:8000/api/auth/logout/', {
         method: 'POST',
         credentials: 'include',
       });
@@ -189,6 +192,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return currentUser?.role === 'teacher';
   };
 
+  const updateUserProfile = (updates: Partial<User>) => {
+    if (currentUser) {
+      const updatedUser = { ...currentUser, ...updates };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('aura_user', JSON.stringify(updatedUser));
+    }
+  };
+
   const value = {
     currentUser,
     loading,
@@ -198,6 +209,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     error,
     isStudent,
     isTeacher,
+    updateUserProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

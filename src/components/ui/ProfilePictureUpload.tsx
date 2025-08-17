@@ -44,7 +44,11 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
       }
 
       if (response.data?.profile_picture_url) {
-        onUploadSuccess?.(response.data.profile_picture_url);
+        // Convert relative URL to absolute URL
+        const fullUrl = response.data.profile_picture_url.startsWith('http') 
+          ? response.data.profile_picture_url 
+          : `http://localhost:8000${response.data.profile_picture_url}`;
+        onUploadSuccess?.(fullUrl);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload profile picture');
@@ -71,13 +75,17 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
         <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
           {currentUser?.profile_picture ? (
             <img
-              src={currentUser.profile_picture}
+              src={currentUser.profile_picture.startsWith('http') 
+                ? currentUser.profile_picture 
+                : `http://localhost:8000${currentUser.profile_picture}`}
               alt="Profile"
               className="w-full h-full object-cover"
             />
           ) : currentUser?.avatar ? (
             <img
-              src={currentUser.avatar}
+              src={currentUser.avatar.startsWith('http') 
+                ? currentUser.avatar 
+                : `http://localhost:8000${currentUser.avatar}`}
               alt="Profile"
               className="w-full h-full object-cover"
             />

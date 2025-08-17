@@ -25,6 +25,15 @@ const SettingsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [activeTab, setActiveTab] = useState('general');
+  
+  // Password change state
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isLoggingOutAllDevices, setIsLoggingOutAllDevices] = useState(false);
 
   // Load user settings from API
   useEffect(() => {
@@ -80,6 +89,71 @@ const SettingsPage = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setMessage({ type: 'error', text: 'New passwords do not match' });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      setMessage({ type: 'error', text: 'New password must be at least 8 characters long' });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    setMessage(null);
+
+    try {
+      const response = await apiService.changePassword(passwordData.currentPassword, passwordData.newPassword);
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      setMessage({ type: 'success', text: 'Password changed successfully!' });
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setMessage(null);
+      }, 3000);
+    } catch (error) {
+      setMessage({ 
+        type: 'error', 
+        text: error instanceof Error ? error.message : 'Failed to change password' 
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handleLogoutAllDevices = async () => {
+    setIsLoggingOutAllDevices(true);
+    setMessage(null);
+
+    try {
+      const response = await apiService.logoutAllDevices();
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      setMessage({ type: 'success', text: 'All devices signed out successfully!' });
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setMessage(null);
+      }, 3000);
+    } catch (error) {
+      setMessage({ 
+        type: 'error', 
+        text: error instanceof Error ? error.message : 'Failed to sign out all devices' 
+      });
+    } finally {
+      setIsLoggingOutAllDevices(false);
     }
   };
   
@@ -338,20 +412,30 @@ const SettingsPage = () => {
                       type="password" 
                       label="Current Password" 
                       icon={<Lock size={16} />}
+                      value={passwordData.currentPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
                     />
                     <Input 
                       type="password" 
                       label="New Password" 
                       icon={<Lock size={16} />}
+                      value={passwordData.newPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
                     />
                     <Input 
                       type="password" 
                       label="Confirm New Password" 
                       icon={<Lock size={16} />}
+                      value={passwordData.confirmPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                     />
                     <div className="pt-2">
-                      <Button size="sm">
-                        Update Password
+                      <Button 
+                        size="sm" 
+                        onClick={handlePasswordChange}
+                        disabled={isChangingPassword}
+                      >
+                        {isChangingPassword ? 'Updating...' : 'Update Password'}
                       </Button>
                     </div>
                   </div>
@@ -397,8 +481,13 @@ const SettingsPage = () => {
                         Active Now
                       </span>
                     </div>
-                    <Button variant="outline" size="sm">
-                      Sign Out All Other Devices
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleLogoutAllDevices}
+                      disabled={isLoggingOutAllDevices}
+                    >
+                      {isLoggingOutAllDevices ? 'Signing Out...' : 'Sign Out All Other Devices'}
                     </Button>
                   </div>
                 </div>

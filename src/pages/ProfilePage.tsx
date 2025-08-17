@@ -9,7 +9,7 @@ import { useData } from '../context/DataContext';
 import { apiService } from '../services/api';
 
 const ProfilePage = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, updateUserProfile } = useAuth();
   const { badges, grades, courses } = useData();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -114,11 +114,8 @@ const ProfilePage = () => {
                 <ProfilePictureUpload 
                   onUploadSuccess={(url) => {
                     // Update the current user's profile picture
-                    if (currentUser) {
-                      const updatedUser = { ...currentUser, profile_picture: url };
-                      // You might want to update the auth context here
-                      console.log('Profile picture updated:', url);
-                    }
+                    updateUserProfile({ profile_picture: url });
+                    console.log('Profile picture updated:', url);
                   }}
                   className="mb-4"
                 />

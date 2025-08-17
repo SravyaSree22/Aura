@@ -132,6 +132,15 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []); // Empty dependency array
 
+  // Refresh notifications every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchUnreadCount();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [fetchUnreadCount]);
+
   const value = useMemo(() => ({
     notifications,
     unreadCount,

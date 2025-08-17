@@ -1,16 +1,23 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import { apiService } from '../services/api';
 import Card, { CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import { Book, BookOpen, Calendar, Info, User } from 'lucide-react';
+import { Book, BookOpen, Calendar, Info, User, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import CreateCourseModal from '../components/teacher/CreateCourseModal';
+import StudentEnrollmentModal from '../components/teacher/StudentEnrollmentModal';
 
 const CoursesPage = () => {
-  const { courses } = useData();
+  const { courses, createCourse } = useData();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [courseStudents, setCourseStudents] = useState<any[]>([]);
   
   const toggleExpand = (courseId: string) => {
     setExpandedCourse(expandedCourse === courseId ? null : courseId);
@@ -19,13 +26,54 @@ const CoursesPage = () => {
   const handleEnterCourse = (courseId: string) => {
     navigate(`/courses/${courseId}`);
   };
+
+  const handleCreateCourse = async (name: string, code: string, description: string) => {
+    await createCourse(name, code, description);
+  };
+
+  const handleManageStudents = async (courseId: string) => {
+    try {
+      const response = await apiService.getCourseStudents(courseId);
+      if (response.data) {
+        setCourseStudents(response.data);
+        setSelectedCourseId(courseId);
+        setShowEnrollmentModal(true);
+      }
+    } catch (error) {
+      console.error('Error fetching course students:', error);
+    }
+  };
+
+  const handleEnrollStudent = async (email: string) => {
+    if (!selectedCourseId) return;
+    await apiService.enrollStudent(selectedCourseId, email);
+    // Refresh the students list
+    const response = await apiService.getCourseStudents(selectedCourseId);
+    if (response.data) {
+      setCourseStudents(response.data);
+    }
+  };
+
+  const handleRemoveStudent = async (studentId: string) => {
+    if (!selectedCourseId) return;
+    await apiService.removeStudent(selectedCourseId, studentId);
+    // Refresh the students list
+    const response = await apiService.getCourseStudents(selectedCourseId);
+    if (response.data) {
+      setCourseStudents(response.data);
+    }
+  };
   
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">My Courses</h1>
         {currentUser?.role === 'teacher' && (
-          <Button variant="primary" size="sm">
+          <Button 
+            variant="primary" 
+            size="sm"
+            onClick={() => setShowCreateModal(true)}
+          >
             <BookOpen className="w-4 h-4 mr-2" />
             Create New Course
           </Button>
@@ -100,6 +148,17 @@ const CoursesPage = () => {
                   <Info className="w-4 h-4 mr-1" />
                   {expandedCourse === course.id ? 'Less Info' : 'More Info'}
                 </Button>
+                {currentUser?.role === 'teacher' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    fullWidth
+                    onClick={() => handleManageStudents(course.id)}
+                  >
+                    <Users className="w-4 h-4 mr-1" />
+                    Students
+                  </Button>
+                )}
                 <Button 
                   variant="primary" 
                   size="sm" 
@@ -123,6 +182,20 @@ const CoursesPage = () => {
           animation: fadeIn 0.3s ease-out forwards;
         }
       `}</style>
+
+      <CreateCourseModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={handleCreateCourse}
+      />
+
+      <StudentEnrollmentModal
+        isOpen={showEnrollmentModal}
+        onClose={() => setShowEnrollmentModal(false)}
+        onEnrollStudent={handleEnrollStudent}
+        onRemoveStudent={handleRemoveStudent}
+        students={courseStudents}
+      />
     </div>
   );
 };

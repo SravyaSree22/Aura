@@ -3,52 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Emotion Detection Test</title>
+    <title>API Connection Test</title>
 </head>
 <body>
-    <h1>Emotion Detection Test</h1>
-    <button onclick="testConnection()">Test Backend Connection</button>
-    <button onclick="testEmotionDetection()">Test Emotion Detection</button>
+    <h1>API Connection Test</h1>
+    <button onclick="testConnection()">Test API Connection</button>
+    <button onclick="testSignup()">Test Signup</button>
     <div id="result"></div>
 
     <script>
         async function testConnection() {
+            const resultDiv = document.getElementById('result');
             try {
-                const response = await fetch('http://127.0.0.1:8050/api/emotions/');
-                const result = await response.json();
-                document.getElementById('result').innerHTML = 
-                    `<p>Connection successful! Found ${result.length} emotions</p>`;
+                console.log('Testing API connection...');
+                const response = await fetch('http://localhost:8000/api/users/csrf_token/', {
+                    method: 'GET',
+                    credentials: 'include',
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `<p style="color: green;">✅ Connection successful! CSRF Token: ${data.csrfToken ? 'Received' : 'Not received'}</p>`;
+                    console.log('Connection successful:', data);
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">❌ Connection failed! Status: ${response.status}</p>`;
+                    console.error('Connection failed:', response.status);
+                }
             } catch (error) {
-                document.getElementById('result').innerHTML = 
-                    `<p>Connection failed: ${error.message}</p>`;
+                resultDiv.innerHTML = `<p style="color: red;">❌ Connection error: ${error.message}</p>`;
+                console.error('Connection error:', error);
             }
         }
 
-        async function testEmotionDetection() {
+        async function testSignup() {
+            const resultDiv = document.getElementById('result');
             try {
-                // Create a simple test image (random data)
-                const width = 640;
-                const height = 480;
-                const testImageData = new Array(width * height * 4).fill(128);
-                
-                const response = await fetch('http://127.0.0.1:8050/api/emotions/detect/', {
+                console.log('Testing signup...');
+                const response = await fetch('http://localhost:8000/api/users/signup/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
+                    credentials: 'include',
                     body: JSON.stringify({
-                        image_data: testImageData,
-                        width: width,
-                        height: height
+                        email: 'test3@example.com',
+                        password: 'testpass123',
+                        name: 'Test User 3',
+                        role: 'student'
                     })
                 });
                 
-                const result = await response.json();
-                document.getElementById('result').innerHTML = 
-                    `<p>Emotion detection successful! Result: ${JSON.stringify(result)}</p>`;
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `<p style="color: green;">✅ Signup successful! User ID: ${data.id}</p>`;
+                    console.log('Signup successful:', data);
+                } else {
+                    const errorData = await response.json();
+                    resultDiv.innerHTML = `<p style="color: red;">❌ Signup failed! Status: ${response.status}, Error: ${errorData.error || 'Unknown error'}</p>`;
+                    console.error('Signup failed:', response.status, errorData);
+                }
             } catch (error) {
-                document.getElementById('result').innerHTML = 
-                    `<p>Emotion detection failed: ${error.message}</p>`;
+                resultDiv.innerHTML = `<p style="color: red;">❌ Signup error: ${error.message}</p>`;
+                console.error('Signup error:', error);
             }
         }
     </script>

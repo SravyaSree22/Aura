@@ -38,6 +38,14 @@ class CourseSerializer(serializers.ModelSerializer):
         model = Course
         fields = ['id', 'name', 'code', 'teacher', 'schedule', 'color']
     
+    def validate(self, data):
+        # Set default values for missing fields
+        if 'schedule' not in data:
+            data['schedule'] = 'TBD'
+        if 'color' not in data:
+            data['color'] = '#4f46e5'
+        return data
+    
     def to_representation(self, instance):
         return {
             'id': f"c{instance.id}",
@@ -57,6 +65,21 @@ class GradeSerializer(serializers.ModelSerializer):
         fields = ['id', 'course', 'value', 'max_value', 'title', 'date']
     
     def to_representation(self, instance):
+        # Try to get feedback from related assignment submission
+        feedback = None
+        try:
+            # Find the assignment submission for this grade
+            from api.models import AssignmentSubmission
+            submission = AssignmentSubmission.objects.filter(
+                assignment__course=instance.course,
+                assignment__title=instance.title,
+                student=instance.student
+            ).first()
+            if submission:
+                feedback = submission.feedback
+        except:
+            feedback = None
+        
         return {
             'id': f"g{instance.id}",
             'courseId': f"c{instance.course.id}",
@@ -65,17 +88,19 @@ class GradeSerializer(serializers.ModelSerializer):
             'maxValue': float(instance.max_value),
             'title': instance.title,
             'date': instance.date.strftime('%Y-%m-%d'),
+            'feedback': feedback,
         }
 
 
 class AssignmentSerializer(serializers.ModelSerializer):
     course = CourseSerializer(read_only=True)
+    course_id = serializers.IntegerField(write_only=True, required=True)
     questions = serializers.SerializerMethodField()
     submission_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Assignment
-        fields = ['id', 'course', 'title', 'description', 'assignment_type', 'due_date', 'max_grade', 'color', 'created_at', 'questions', 'submission_count']
+        fields = ['id', 'course', 'course_id', 'title', 'description', 'assignment_type', 'due_date', 'max_grade', 'color', 'created_at', 'questions', 'submission_count']
     
     def to_representation(self, instance):
         # Get current user's submission status
@@ -108,6 +133,11 @@ class AssignmentSerializer(serializers.ModelSerializer):
     
     def get_submission_count(self, obj):
         return obj.submissions.count()
+    
+    def create(self, validated_data):
+        course_id = validated_data.pop('course_id')
+        validated_data['course_id'] = course_id
+        return super().create(validated_data)
 
 
 class QuizQuestionSerializer(serializers.ModelSerializer):

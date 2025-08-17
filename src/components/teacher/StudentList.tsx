@@ -15,7 +15,8 @@ import {
   Eye,
   CheckCircle,
   Clock,
-  X
+  X,
+  UserPlus
 } from 'lucide-react';
 import { apiService } from '../../services/api';
 
@@ -46,9 +47,10 @@ interface AssignmentSubmission {
 interface StudentListProps {
   students: Student[];
   courseId?: string;
+  onStudentEnrolled?: () => void;
 }
 
-const StudentList: React.FC<StudentListProps> = ({ students, courseId }) => {
+const StudentList: React.FC<StudentListProps> = ({ students, courseId, onStudentEnrolled }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([]);
   const [loading, setLoading] = useState(false);
@@ -58,6 +60,9 @@ const StudentList: React.FC<StudentListProps> = ({ students, courseId }) => {
   const [feedback, setFeedback] = useState('');
   const [gradingLoading, setGradingLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showEnrollmentForm, setShowEnrollmentForm] = useState(false);
+  const [enrollmentEmail, setEnrollmentEmail] = useState('');
+  const [enrolling, setEnrolling] = useState(false);
 
   const filteredStudents = students.filter(student =>
     student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -134,6 +139,38 @@ const StudentList: React.FC<StudentListProps> = ({ students, courseId }) => {
     }
   };
 
+  const handleEnrollStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!enrollmentEmail.trim() || !courseId) return;
+
+    setEnrolling(true);
+    setMessage(null);
+
+    try {
+      await apiService.enrollStudent(courseId, enrollmentEmail.trim());
+      setMessage({ type: 'success', text: 'Student enrolled successfully!' });
+      setEnrollmentEmail('');
+      setShowEnrollmentForm(false);
+      
+      // Refresh the students list
+      if (onStudentEnrolled) {
+        onStudentEnrolled();
+      }
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setMessage(null);
+      }, 3000);
+    } catch (error) {
+      setMessage({ 
+        type: 'error', 
+        text: error instanceof Error ? error.message : 'Failed to enroll student' 
+      });
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
   const openGradingModal = (submission: AssignmentSubmission) => {
     setSelectedSubmission(submission);
     setGrade(submission.grade?.toString() || '');
@@ -165,6 +202,56 @@ const StudentList: React.FC<StudentListProps> = ({ students, courseId }) => {
 
   return (
     <div className="space-y-6">
+      {/* Enrollment Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold flex items-center">
+              <UserPlus className="w-5 h-5 mr-2" />
+              Enroll New Student
+            </h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEnrollmentForm(!showEnrollmentForm)}
+            >
+              {showEnrollmentForm ? 'Cancel' : 'Add Student'}
+            </Button>
+          </div>
+        </CardHeader>
+        {showEnrollmentForm && (
+          <CardContent>
+            <form onSubmit={handleEnrollStudent} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Student Email
+                </label>
+                <div className="flex space-x-2">
+                  <Input
+                    type="email"
+                    value={enrollmentEmail}
+                    onChange={(e) => setEnrollmentEmail(e.target.value)}
+                    placeholder="Enter student email address"
+                    required
+                    className="flex-1"
+                  />
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={enrolling || !enrollmentEmail.trim()}
+                  >
+                    {enrolling ? 'Enrolling...' : 'Enroll'}
+                  </Button>
+                </div>
+                <p className="text-sm text-gray-500 mt-1">
+                  The student must have an account with this email address
+                </p>
+              </div>
+            </form>
+          </CardContent>
+        )}
+      </Card>
+
       {message && (
         <div className={`p-3 rounded-lg text-center ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
           {message.text}

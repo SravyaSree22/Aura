@@ -42,6 +42,14 @@ const GradeCard = ({ grade }: GradeCardProps) => {
           ></div>
         </div>
         
+        {grade.feedback && (
+          <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+            <p className="text-blue-800">
+              <strong>Feedback:</strong> {grade.feedback}
+            </p>
+          </div>
+        )}
+        
         <div className="mt-3 text-xs text-gray-500">
           {formatDate(grade.date)}
         </div>

@@ -41,6 +41,7 @@ export interface Grade {
   maxValue: number;
   title: string;
   date: string;
+  feedback?: string;
 }
 
 export interface Assignment {

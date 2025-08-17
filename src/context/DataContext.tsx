@@ -24,6 +24,7 @@ interface DataContextType {
   submitDoubt: (courseId: string, question: string) => Promise<void>;
   submitAssignment: (assignmentId: string, file?: File) => Promise<void>;
   createAssignment: (courseId: string, title: string, description: string, dueDate: string, maxGrade?: number) => Promise<void>;
+  createCourse: (name: string, code: string, description?: string) => Promise<void>;
   gradeAssignment: (assignmentId: string, grade: number) => Promise<void>;
   gradeStudentSubmission: (assignmentId: string, studentId: string, grade: number) => Promise<void>;
   createSchedule: (courseId: string, day: string, time: string, type: string, room?: string) => Promise<void>;
@@ -44,6 +45,7 @@ const DataContext = createContext<DataContextType>({
   submitDoubt: async () => {},
   submitAssignment: async () => {},
   createAssignment: async () => {},
+  createCourse: async () => {},
   gradeAssignment: async () => {},
   gradeStudentSubmission: async () => {},
   createSchedule: async () => {},
@@ -257,6 +259,18 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const createCourse = async (name: string, code: string, description?: string) => {
+    try {
+      const response = await apiService.createCourse({ name, code, description });
+      if (response.data) {
+        setCourses(prev => [response.data as Course, ...prev]);
+      }
+    } catch (error) {
+      console.error('Error creating course:', error);
+      throw error;
+    }
+  };
+
   const value = {
     courses,
     grades,
@@ -269,6 +283,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     submitDoubt,
     submitAssignment,
     createAssignment,
+    createCourse,
     gradeAssignment,
     gradeStudentSubmission,
     createSchedule,

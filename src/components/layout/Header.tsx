@@ -49,7 +49,11 @@ const Header = () => {
         
         <div className="flex items-center ml-4">
           <img
-            src={currentUser.profile_picture || currentUser.avatar || '/default-avatar.png'}
+            src={(currentUser.profile_picture || currentUser.avatar) 
+              ? ((currentUser.profile_picture || currentUser.avatar)?.startsWith('http') 
+                ? (currentUser.profile_picture || currentUser.avatar) 
+                : `http://localhost:8000${currentUser.profile_picture || currentUser.avatar}`)
+              : '/default-avatar.png'}
             alt={currentUser.name}
             className="w-8 h-8 rounded-full object-cover mr-2"
             onError={(e) => {
