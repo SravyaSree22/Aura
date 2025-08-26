@@ -1,0 +1,13 @@
+This is a test assignment submission for the Aura LMS demo.
+
+Student: John Student
+Course: Advanced Mathematics
+Assignment: Calculus Problem Set
+
+Problem 1: Find the derivative of f(x) = x² + 3x + 1
+Solution: f'(x) = 2x + 3
+
+Problem 2: Find the integral of ∫(2x + 3)dx
+Solution: ∫(2x + 3)dx = x² + 3x + C
+
+This demonstrates the file upload functionality in the Aura LMS system.

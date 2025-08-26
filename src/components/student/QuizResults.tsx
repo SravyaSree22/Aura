@@ -237,3 +237,4 @@ const QuizResults: React.FC<QuizResultsProps> = ({ results, onClose }) => {
 export default QuizResults;
 
 
+

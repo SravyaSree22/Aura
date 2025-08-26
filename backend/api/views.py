@@ -4,6 +4,7 @@ from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db import models
+from django.http import Http404
 from django.middleware.csrf import get_token
 from django.utils import timezone
 from rest_framework import viewsets, status
@@ -183,6 +184,20 @@ class CourseViewSet(viewsets.ModelViewSet):
         else:  # Student
             return Course.objects.filter(students=user)
 
+    def get_object(self):
+        """
+        Override to handle string IDs with prefixes (e.g., 'c1' -> 1)
+        """
+        pk = self.kwargs.get('pk')
+        if pk and pk.startswith('c'):
+            # Convert string ID like 'c1' to numeric ID 1
+            try:
+                numeric_id = int(pk[1:])
+                return Course.objects.get(id=numeric_id)
+            except (ValueError, Course.DoesNotExist):
+                raise Http404("Course not found")
+        return super().get_object()
+
     def perform_create(self, serializer):
         if not self.request.user.is_staff:
             raise PermissionDenied("Only teachers can create courses")
@@ -357,6 +372,20 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         else:
             # Students can see assignments for courses they're enrolled in
             return Assignment.objects.filter(course__students=user)
+
+    def get_object(self):
+        """
+        Override to handle string IDs with prefixes (e.g., 'a6' -> 6)
+        """
+        pk = self.kwargs.get('pk')
+        if pk and pk.startswith('a'):
+            # Convert string ID like 'a6' to numeric ID 6
+            try:
+                numeric_id = int(pk[1:])
+                return Assignment.objects.get(id=numeric_id)
+            except (ValueError, Assignment.DoesNotExist):
+                raise Http404("Assignment not found")
+        return super().get_object()
 
     def perform_create(self, serializer):
         if not self.request.user.is_staff:
