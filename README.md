@@ -115,7 +115,7 @@ A comprehensive learning management system with real-time facial emotion recogni
 
 3. **Access the application**
    - Frontend: http://localhost:5173
-   - Backend API: http://localhost:8050
+   - Backend API: http://localhost:8000
 
 ## Facial Emotion Recognition Setup
 
