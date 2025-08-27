@@ -27,8 +27,8 @@ const CoursesPage = () => {
     navigate(`/courses/${courseId}`);
   };
 
-  const handleCreateCourse = async (name: string, code: string, description: string) => {
-    await createCourse(name, code, description);
+  const handleCreateCourse = async (name: string, code: string, description?: string) => {
+    await createCourse(name, code, description || '');
   };
 
   const handleManageStudents = async (courseId: string) => {

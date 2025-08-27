@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import Card, { CardHeader, CardContent } from '../ui/Card';
 import Button from '../ui/Button';
-import { Calendar, Clock, FileText, Upload, Download, CheckCircle } from 'lucide-react';
+import { Calendar, Clock, FileText, Upload, CheckCircle } from 'lucide-react';
 import { Assignment } from '../../types';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';

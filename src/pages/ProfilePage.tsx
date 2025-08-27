@@ -4,7 +4,7 @@ import Card, { CardHeader, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import ProfilePictureUpload from '../components/ui/ProfilePictureUpload';
-import { Camera, Mail, Phone, Save, User } from 'lucide-react';
+import { Mail, Phone, Save, User } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { apiService } from '../services/api';
 

@@ -129,9 +129,9 @@ const StudentList: React.FC<StudentListProps> = ({ students, courseId, onStudent
   const handleDownloadSubmission = async (submission: AssignmentSubmission) => {
     try {
       const response = await apiService.downloadSubmission(submission.id);
-      if (response.data && response.data.file_url) {
+      if (response.data && (response.data as any).file_url) {
         // Open the file URL in a new tab
-        window.open(response.data.file_url, '_blank');
+        window.open((response.data as any).file_url, '_blank');
       }
     } catch (error) {
       console.error('Error downloading submission:', error);

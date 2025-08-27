@@ -20,7 +20,8 @@ import {
   Trash2,
   Clock,
   Award,
-  Users
+  Users,
+  AlertCircle
 } from 'lucide-react';
 import { apiService } from '../services/api';
 import QuizComponent from '../components/student/QuizComponent';
@@ -50,6 +51,7 @@ const CourseDetailPage = () => {
   });
   const [showQuizForm, setShowQuizForm] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
+  const [quizLoading, setQuizLoading] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState({
     question_text: '',
     option_a: '',
@@ -60,7 +62,7 @@ const CourseDetailPage = () => {
     points: 1
   });
   const [courseStudents, setCourseStudents] = useState<any[]>([]);
-  const [studentsLoading, setStudentsLoading] = useState(false);
+  // const [studentsLoading, setStudentsLoading] = useState(false);
 
   // Handle course ID with or without 'c' prefix
   const normalizedCourseId = courseId?.startsWith('c') ? courseId : `c${courseId}`;
@@ -78,7 +80,7 @@ const CourseDetailPage = () => {
   const fetchCourseStudents = async () => {
     if (!normalizedCourseId || !isTeacher) return;
     
-    setStudentsLoading(true);
+    // setStudentsLoading(true);
     try {
       const response = await apiService.getCourseStudents(normalizedCourseId);
       if (response.data) {
@@ -88,34 +90,11 @@ const CourseDetailPage = () => {
       console.error('Error fetching course students:', error);
       setCourseStudents([]);
     } finally {
-      setStudentsLoading(false);
+      // setStudentsLoading(false);
     }
   };
 
-  // Debug information
-  console.log('CourseDetailPage Debug:', {
-    courseId,
-    normalizedCourseId,
-    coursesCount: courses.length,
-    courses: courses.map(c => ({ id: c.id, name: c.name })),
-    loading,
-    currentUser: currentUser ? { id: currentUser.id, name: currentUser.name, role: currentUser.role } : null
-  });
 
-  console.log('Course lookup result:', {
-    normalizedCourseId,
-    course,
-    courseFound: !!course,
-    allCourseIds: courses.map(c => c.id),
-    courseDetails: course ? {
-      id: course.id,
-      name: course.name,
-      teacher: course.teacher,
-      code: course.code,
-      schedule: course.schedule,
-      color: course.color
-    } : null
-  });
 
   if (loading) {
     return (
@@ -136,12 +115,7 @@ const CourseDetailPage = () => {
         <div className="text-center">
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Course Not Found</h2>
           <p className="text-gray-600 mb-4">The course you&apos;re looking for doesn&apos;t exist.</p>
-          <div className="text-sm text-gray-500 mb-4">
-            <p>Debug Info:</p>
-            <p>Course ID: {courseId} (Normalized: {normalizedCourseId})</p>
-            <p>Available Courses: {courses.length}</p>
-            <p>Course IDs: {courses.map(c => c.id).join(', ')}</p>
-          </div>
+
           <Button onClick={() => navigate('/courses')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Courses
@@ -371,12 +345,35 @@ const CourseDetailPage = () => {
     }
   };
 
-  const handleTakeQuiz = (assignment: any) => {
+  const handleTakeQuiz = async (assignment: any) => {
     setSelectedAssignment(assignment.id);
+    setQuizLoading(true);
+    setQuizQuestions([]); // Clear previous questions
+    
+    // Fetch quiz questions for this assignment
+    try {
+      const response = await apiService.getAssignmentQuestions(assignment.id);
+      
+      if (response.data && typeof response.data === 'object' && 'questions' in response.data && Array.isArray(response.data.questions)) {
+        setQuizQuestions(response.data.questions);
+      } else if (response.data && Array.isArray(response.data)) {
+        // Fallback for flat array format
+        setQuizQuestions(response.data);
+      } else {
+        setMessage({ type: 'error', text: 'Invalid quiz data received' });
+        setSelectedAssignment(null);
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Failed to load quiz questions' });
+      setSelectedAssignment(null);
+    } finally {
+      setQuizLoading(false);
+    }
   };
 
   const handleQuizComplete = (result: any) => {
     setSelectedAssignment(null);
+    setQuizQuestions([]);
     setMessage({ type: 'success', text: `Quiz completed! Score: ${result.score.toFixed(1)}%` });
     
     setTimeout(() => {
@@ -1024,17 +1021,43 @@ const CourseDetailPage = () => {
         )}
 
         {/* Quiz Component */}
-        {selectedAssignment && isStudent && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-              <QuizComponent
-                assignmentId={selectedAssignment}
-                questions={[]} // This would be loaded from the API
-                onComplete={handleQuizComplete}
-              />
+        {selectedAssignment && isStudent && (() => {
+          return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
+                <button
+                  onClick={() => setSelectedAssignment(null)}
+                  className="absolute top-4 right-4 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+                
+                {quizLoading ? (
+                  <div className="bg-white rounded-lg p-8 text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Quiz...</h3>
+                    <p className="text-gray-500">Please wait while we load the quiz questions.</p>
+                  </div>
+                ) : quizQuestions.length > 0 ? (
+                  <QuizComponent
+                    assignmentId={selectedAssignment}
+                    questions={quizQuestions}
+                    onComplete={handleQuizComplete}
+                  />
+                ) : (
+                  <div className="bg-white rounded-lg p-8 text-center">
+                    <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Quiz Questions Found</h3>
+                    <p className="text-gray-500 mb-4">This quiz doesn&apos;t have any questions yet.</p>
+                    <Button onClick={() => setSelectedAssignment(null)}>
+                      Close
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
@@ -1042,14 +1065,9 @@ const CourseDetailPage = () => {
     console.error('Error rendering CourseDetailPage:', error);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Course</h2>
-          <p className="text-gray-600 mb-4">There was an error loading the course data.</p>
-          <div className="text-sm text-gray-500 mb-4">
-            <p>Error: {error instanceof Error ? error.message : 'Unknown error'}</p>
-            <p>Course ID: {courseId}</p>
-            <p>Normalized Course ID: {normalizedCourseId}</p>
-          </div>
+                  <div className="text-center">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Course</h2>
+            <p className="text-gray-600 mb-4">There was an error loading the course data.</p>
           <Button onClick={() => navigate('/courses')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Courses

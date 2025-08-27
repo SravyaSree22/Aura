@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { X, BookOpen, Save } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';

@@ -6,7 +6,6 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { 
   Calendar, 
-  Users, 
   CheckCircle, 
   XCircle, 
   Clock, 
@@ -41,7 +40,7 @@ const AttendancePage = () => {
   const [isLoadingView, setIsLoadingView] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [viewMode, setViewMode] = useState<'mark' | 'view'>('mark');
-  const [clickedButtons, setClickedButtons] = useState<Record<string, string>>({});
+  // const [clickedButtons, setClickedButtons] = useState<Record<string, string>>({});
   const [studentsLoaded, setStudentsLoaded] = useState(false);
 
   const isTeacher = currentUser?.role === 'teacher';
@@ -176,15 +175,15 @@ const AttendancePage = () => {
     console.log('handleAttendanceChange called:', { studentId, status });
     
     // Set visual feedback for clicked button
-    setClickedButtons(prev => ({ ...prev, [studentId.toString()]: status }));
+    // setClickedButtons(prev => ({ ...prev, [studentId.toString()]: status }));
     
     // Clear only this student's visual feedback after 500ms (longer for better UX)
     setTimeout(() => {
-      setClickedButtons(prev => {
-        const newState = { ...prev };
-        delete newState[studentId.toString()];
-        return newState;
-      });
+      // setClickedButtons(prev => {
+      //   const newState = { ...prev };
+      //   delete newState[studentId.toString()];
+      //   return newState;
+      // });
     }, 500);
     
          // Update attendance records with a more reliable approach
@@ -467,7 +466,7 @@ const AttendancePage = () => {
                 <div className="grid gap-3">
                   {students.map((student) => {
                     const record = attendanceRecords.find(r => r.student_id === student.id.toString());
-                    const isClicked = clickedButtons[student.id];
+                    // const isClicked = clickedButtons[student.id];
                     
                     // Debug log
                     console.log(`Student ${student.name} (${student.id}): record=`, record, 'status=', record?.status);

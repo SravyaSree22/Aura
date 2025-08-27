@@ -70,7 +70,7 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ assignmentId, questions, 
       setQuizResult(response.data);
       setShowResults(true);
       onComplete(response.data);
-    } catch (error) {
+    } catch {
       alert('Failed to submit quiz. Please try again.');
     } finally {
       setIsSubmitting(false);

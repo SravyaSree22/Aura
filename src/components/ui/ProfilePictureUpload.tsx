@@ -43,11 +43,12 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
         throw new Error(response.error);
       }
 
-      if (response.data?.profile_picture_url) {
+      if (response.data && (response.data as any).profile_picture_url) {
         // Convert relative URL to absolute URL
-        const fullUrl = response.data.profile_picture_url.startsWith('http') 
-          ? response.data.profile_picture_url 
-          : `http://localhost:8000${response.data.profile_picture_url}`;
+        const profilePictureUrl = (response.data as any).profile_picture_url;
+        const fullUrl = profilePictureUrl.startsWith('http') 
+          ? profilePictureUrl 
+          : `http://localhost:8000${profilePictureUrl}`;
         onUploadSuccess?.(fullUrl);
       }
     } catch (err) {
@@ -146,6 +147,7 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
 };
 
 export default ProfilePictureUpload;
+
 
 
 

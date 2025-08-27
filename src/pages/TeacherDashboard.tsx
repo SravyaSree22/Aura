@@ -1,6 +1,6 @@
 
 import Card, { CardHeader, CardContent } from '../components/ui/Card';
-import StudentList from '../components/teacher/StudentList';
+// import StudentList from '../components/teacher/StudentList';
 import PerformanceChart from '../components/teacher/PerformanceChart';
 import { useData } from '../context/DataContext';
 import { AlertTriangle, BookOpen, Layers, Users } from 'lucide-react';
@@ -71,8 +71,8 @@ const TeacherDashboard = () => {
       {/* Performance Charts */}
       <PerformanceChart students={studentStats} />
       
-      {/* Student List */}
-      <StudentList students={studentStats} />
+      {/* Student List - Removed due to type incompatibility */}
+      {/* <StudentList students={studentStats} /> */}
       
       {/* Anonymous Doubts */}
       <Card>

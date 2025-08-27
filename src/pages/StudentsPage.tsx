@@ -14,9 +14,97 @@ import {
 } from 'lucide-react';
 import { apiService } from '../services/api';
 import { StudentStats } from '../types';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+  LineElement,
+  Filler,
+} from 'chart.js';
+import { Bar, Doughnut, Line } from 'react-chartjs-2';
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+  LineElement,
+  Filler
+);
 
 // Chart components
-const GradeDistributionChart = ({ students: _students }: { students: StudentStats[] }) => {
+const GradeDistributionChart = ({ students }: { students: StudentStats[] }) => {
+  const gradeRanges = [
+    { label: '90-100', min: 90, max: 100 },
+    { label: '80-89', min: 80, max: 89 },
+    { label: '70-79', min: 70, max: 79 },
+    { label: '60-69', min: 60, max: 69 },
+    { label: '0-59', min: 0, max: 59 },
+  ];
+
+  const gradeData = gradeRanges.map(range => 
+    students.filter(student => 
+      student.averageGrade >= range.min && student.averageGrade <= range.max
+    ).length
+  );
+
+  const data = {
+    labels: gradeRanges.map(range => range.label),
+    datasets: [
+      {
+        label: 'Number of Students',
+        data: gradeData,
+        backgroundColor: [
+          'rgba(34, 197, 94, 0.8)',
+          'rgba(59, 130, 246, 0.8)',
+          'rgba(245, 158, 11, 0.8)',
+          'rgba(239, 68, 68, 0.8)',
+          'rgba(156, 163, 175, 0.8)',
+        ],
+        borderColor: [
+          'rgb(34, 197, 94)',
+          'rgb(59, 130, 246)',
+          'rgb(245, 158, 11)',
+          'rgb(239, 68, 68)',
+          'rgb(156, 163, 175)',
+        ],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      title: {
+        display: false,
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1,
+        },
+      },
+    },
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -24,17 +112,55 @@ const GradeDistributionChart = ({ students: _students }: { students: StudentStat
       </CardHeader>
       <CardContent>
         <div className="h-64">
-          {/* Chart would go here */}
-          <div className="flex items-center justify-center h-full text-gray-500">
-            Chart Component
-          </div>
+          <Bar data={data} options={options} />
         </div>
       </CardContent>
     </Card>
   );
 };
 
-const AttendanceTrendChart = ({ students: _students }: { students: StudentStats[] }) => {
+const AttendanceTrendChart = ({ students }: { students: StudentStats[] }) => {
+  const attendanceData = students.map(student => student.attendanceRate * 100);
+  const labels = students.map(student => student.name);
+
+  const data = {
+    labels: labels,
+    datasets: [
+      {
+        label: 'Attendance Rate (%)',
+        data: attendanceData,
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        fill: true,
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      title: {
+        display: false,
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: 100,
+        ticks: {
+          callback: function(value: any) {
+            return value + '%';
+          },
+        },
+      },
+    },
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -42,17 +168,74 @@ const AttendanceTrendChart = ({ students: _students }: { students: StudentStats[
       </CardHeader>
       <CardContent>
         <div className="h-64">
-          {/* Chart would go here */}
-          <div className="flex items-center justify-center h-full text-gray-500">
-            Chart Component
-          </div>
+          <Line data={data} options={options} />
         </div>
       </CardContent>
     </Card>
   );
 };
 
-const EmotionalStatusChart = ({ students: _students }: { students: StudentStats[] }) => {
+const EmotionalStatusChart = ({ students }: { students: StudentStats[] }) => {
+  const emotionCounts = {
+    normal: 0,
+    stressed: 0,
+    tired: 0,
+    focused: 0,
+  };
+
+  students.forEach(student => {
+    if (student.emotionalStatus) {
+      // Find the emotion with the highest value
+      const emotions = student.emotionalStatus;
+      const maxEmotion = Object.entries(emotions).reduce((a, b) => 
+        emotions[a[0] as keyof typeof emotions] > emotions[b[0] as keyof typeof emotions] ? a : b
+      )[0];
+      
+      if (maxEmotion in emotionCounts) {
+        emotionCounts[maxEmotion as keyof typeof emotionCounts]++;
+      }
+    }
+  });
+
+  const data = {
+    labels: Object.keys(emotionCounts).map(emotion => 
+      emotion.charAt(0).toUpperCase() + emotion.slice(1)
+    ),
+    datasets: [
+      {
+        data: Object.values(emotionCounts),
+        backgroundColor: [
+          'rgba(34, 197, 94, 0.8)',
+          'rgba(239, 68, 68, 0.8)',
+          'rgba(156, 163, 175, 0.8)',
+          'rgba(245, 158, 11, 0.8)',
+          'rgba(168, 85, 247, 0.8)',
+        ],
+        borderColor: [
+          'rgb(34, 197, 94)',
+          'rgb(239, 68, 68)',
+          'rgb(156, 163, 175)',
+          'rgb(245, 158, 11)',
+          'rgb(168, 85, 247)',
+        ],
+        borderWidth: 2,
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom' as const,
+      },
+      title: {
+        display: false,
+      },
+    },
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -60,17 +243,64 @@ const EmotionalStatusChart = ({ students: _students }: { students: StudentStats[
       </CardHeader>
       <CardContent>
         <div className="h-64">
-          {/* Chart would go here */}
-          <div className="flex items-center justify-center h-full text-gray-500">
-            Chart Component
-          </div>
+          <Doughnut data={data} options={options} />
         </div>
       </CardContent>
     </Card>
   );
 };
 
-const PerformanceComparisonChart = ({ students: _students }: { students: StudentStats[] }) => {
+const PerformanceComparisonChart = ({ students }: { students: StudentStats[] }) => {
+  const performanceData = students.map(student => ({
+    name: student.name,
+    grade: student.averageGrade,
+    attendance: student.attendanceRate * 100,
+  }));
+
+  const data = {
+    labels: performanceData.map(student => student.name),
+    datasets: [
+      {
+        label: 'Average Grade (%)',
+        data: performanceData.map(student => student.grade),
+        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+        borderColor: 'rgb(59, 130, 246)',
+        borderWidth: 1,
+      },
+      {
+        label: 'Attendance Rate (%)',
+        data: performanceData.map(student => student.attendance),
+        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+        borderColor: 'rgb(34, 197, 94)',
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+      },
+      title: {
+        display: false,
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: 100,
+        ticks: {
+          callback: function(value: any) {
+            return value + '%';
+          },
+        },
+      },
+    },
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -78,10 +308,7 @@ const PerformanceComparisonChart = ({ students: _students }: { students: Student
       </CardHeader>
       <CardContent>
         <div className="h-64">
-          {/* Chart would go here */}
-          <div className="flex items-center justify-center h-full text-gray-500">
-            Chart Component
-          </div>
+          <Bar data={data} options={options} />
         </div>
       </CardContent>
     </Card>

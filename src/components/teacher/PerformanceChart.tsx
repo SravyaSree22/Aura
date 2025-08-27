@@ -1,4 +1,5 @@
 
+// import React from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -31,14 +32,39 @@ interface PerformanceChartProps {
 }
 
 const PerformanceChart = ({ students }: PerformanceChartProps) => {
+  console.log('PerformanceChart received students:', students);
+
+  // If no students, show empty state
+  if (!students || students.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <h3 className="font-medium text-gray-900">Student Performance Trends</h3>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-gray-500">
+            <p>No student data available to display charts.</p>
+            <p className="text-sm">Student performance data will appear here once available.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Calculate average performance trends across all students
   const calculateAverageTrend = () => {
-    const result = Array(students[0]?.trend.length || 0).fill(0);
+    if (!students[0]?.trend || students[0].trend.length === 0) {
+      return [0, 0, 0, 0, 0, 0, 0]; // Default trend data
+    }
+    
+    const result = Array(students[0].trend.length).fill(0);
     
     for (const student of students) {
-      student.trend.forEach((val, idx) => {
-        result[idx] += val / students.length;
-      });
+      if (student.trend && student.trend.length > 0) {
+        student.trend.forEach((val, idx) => {
+          result[idx] += val / students.length;
+        });
+      }
     }
     
     return result;
@@ -66,7 +92,7 @@ const PerformanceChart = ({ students }: PerformanceChartProps) => {
         
         return {
           label: student.name,
-          data: student.trend,
+          data: student.trend || [0, 0, 0, 0, 0, 0, 0],
           borderColor: colors[index].border,
           backgroundColor: colors[index].bg,
           tension: 0.3,
@@ -82,10 +108,10 @@ const PerformanceChart = ({ students }: PerformanceChartProps) => {
       {
         label: 'Emotion Distribution',
         data: [
-          students.reduce((sum, student) => sum + student.emotionalStatus.normal, 0) / students.length,
-          students.reduce((sum, student) => sum + student.emotionalStatus.focused, 0) / students.length,
-          students.reduce((sum, student) => sum + student.emotionalStatus.tired, 0) / students.length,
-          students.reduce((sum, student) => sum + student.emotionalStatus.stressed, 0) / students.length,
+          students.reduce((sum, student) => sum + (student.emotionalStatus?.normal || 0), 0) / students.length,
+          students.reduce((sum, student) => sum + (student.emotionalStatus?.focused || 0), 0) / students.length,
+          students.reduce((sum, student) => sum + (student.emotionalStatus?.tired || 0), 0) / students.length,
+          students.reduce((sum, student) => sum + (student.emotionalStatus?.stressed || 0), 0) / students.length,
         ],
         backgroundColor: [
           'rgba(107, 114, 128, 0.6)',
@@ -98,75 +124,69 @@ const PerformanceChart = ({ students }: PerformanceChartProps) => {
   };
   
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="space-y-6">
+      {/* Performance Trends */}
       <Card>
         <CardHeader>
-          <h3 className="font-medium text-gray-900">Performance Trends</h3>
+          <h3 className="font-medium text-gray-900">Student Performance Trends</h3>
         </CardHeader>
         <CardContent>
-          <Line 
-            data={lineChartData} 
-            options={{
-              responsive: true,
-              plugins: {
-                legend: {
-                  position: 'bottom',
+          <div className="h-64">
+            <Line 
+              data={lineChartData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'top' as const,
+                  },
+                  title: {
+                    display: true,
+                    text: 'Weekly Performance Trends',
+                  },
                 },
-                tooltip: {
-                  mode: 'index',
-                  intersect: false,
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    max: 100,
+                  },
                 },
-              },
-              scales: {
-                y: {
-                  min: 0,
-                  max: 100,
-                  ticks: {
-                    callback: function(value) {
-                      return value + '%';
-                    }
-                  }
-                }
-              }
-            }}
-          />
+              }}
+            />
+          </div>
         </CardContent>
       </Card>
-      
+
+      {/* Emotion Distribution */}
       <Card>
         <CardHeader>
-          <h3 className="font-medium text-gray-900">Emotional Status Distribution</h3>
+          <h3 className="font-medium text-gray-900">Student Emotional Status Distribution</h3>
         </CardHeader>
         <CardContent>
-          <Bar 
-            data={emotionData}
-            options={{
-              responsive: true,
-              plugins: {
-                legend: {
-                  display: false,
+          <div className="h-64">
+            <Bar 
+              data={emotionData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'top' as const,
+                  },
+                  title: {
+                    display: true,
+                    text: 'Average Emotional Status',
+                  },
                 },
-                tooltip: {
-                  callbacks: {
-                    label: function(context) {
-                      return `${context.dataset.label}: ${context.raw}%`;
-                    }
-                  }
-                }
-              },
-              scales: {
-                y: {
-                  beginAtZero: true,
-                  max: 100,
-                  ticks: {
-                    callback: function(value) {
-                      return value + '%';
-                    }
-                  }
-                }
-              }
-            }}
-          />
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                  },
+                },
+              }}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -26,7 +26,7 @@ interface DataContextType {
   createAssignment: (courseId: string, title: string, description: string, dueDate: string, maxGrade?: number) => Promise<void>;
   createCourse: (name: string, code: string, description?: string) => Promise<void>;
   gradeAssignment: (assignmentId: string, grade: number) => Promise<void>;
-  gradeStudentSubmission: (assignmentId: string, studentId: string, grade: number) => Promise<void>;
+  gradeStudentSubmission: (submissionId: string, grade: number, feedback?: string) => Promise<void>;
   createSchedule: (courseId: string, day: string, time: string, type: string, room?: string) => Promise<void>;
   updateSchedule: (scheduleId: string, day: string, time: string, type: string, room?: string) => Promise<void>;
   deleteSchedule: (scheduleId: string) => Promise<void>;
@@ -107,11 +107,20 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           setCourses(coursesResponse.data as Course[]);
         }
         if (gradesResponse.data) setGrades(gradesResponse.data as Grade[]);
-        if (assignmentsResponse.data) setAssignments(assignmentsResponse.data as Assignment[]);
+        if (assignmentsResponse.data) {
+          console.log('Assignments data received:', assignmentsResponse.data);
+          const assignments = assignmentsResponse.data as Assignment[];
+          const quizAssignments = assignments.filter(a => a.assignment_type === 'quiz');
+          console.log('Quiz assignments found:', quizAssignments);
+          setAssignments(assignments);
+        }
         if (attendanceResponse.data) setAttendance(attendanceResponse.data as Attendance[]);
         if (badgesResponse.data) setBadges(badgesResponse.data as Badge[]);
         if (doubtsResponse.data) setDoubts(doubtsResponse.data as Doubt[]);
-        if (studentStatsResponse.data) setStudentStats(studentStatsResponse.data as StudentStats[]);
+        if (studentStatsResponse.data) {
+          console.log('Student stats data received:', studentStatsResponse.data);
+          setStudentStats(studentStatsResponse.data as StudentStats[]);
+        }
         if (schedulesResponse.data) setSchedules(schedulesResponse.data as Schedule[]);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -200,14 +209,14 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const gradeStudentSubmission = async (assignmentId: string, studentId: string, grade: number) => {
+  const gradeStudentSubmission = async (submissionId: string, grade: number, feedback?: string) => {
     try {
-      const response = await apiService.gradeStudentSubmission(assignmentId, studentId, grade);
+      const response = await apiService.gradeStudentSubmission(submissionId, grade, feedback);
       if (response.data) {
         // Update the assignment grade
         setAssignments(prev => 
           prev.map(assignment => 
-            assignment.id === assignmentId 
+            assignment.id === submissionId 
               ? { ...assignment, grade: grade }
               : assignment
           )
