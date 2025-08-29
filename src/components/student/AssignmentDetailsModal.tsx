@@ -27,6 +27,26 @@ const AssignmentDetailsModal: React.FC<AssignmentDetailsModalProps> = ({
   };
 
   const getDueDateDisplay = () => {
+    // If assignment is submitted or graded, show submission status instead of due date
+    if (assignment.user_submission_status === 'submitted' || assignment.user_submission_status === 'graded') {
+      if (assignment.user_submitted_at) {
+        return (
+          <div className="flex items-center text-green-600">
+            <CheckCircle size={16} className="mr-1" />
+            Submitted on {new Date(assignment.user_submitted_at).toLocaleDateString()}
+          </div>
+        );
+      } else {
+        return (
+          <div className="flex items-center text-green-600">
+            <CheckCircle size={16} className="mr-1" />
+            Submitted
+          </div>
+        );
+      }
+    }
+    
+    // For pending assignments, show due date logic
     const dueDate = new Date(assignment.dueDate);
     const now = new Date();
     const isOverdue = dueDate < now;

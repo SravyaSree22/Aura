@@ -34,6 +34,16 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onViewDetai
   };
 
   const getDueDateDisplay = () => {
+    // If assignment is submitted or graded, show submission status instead of due date
+    if (assignment.user_submission_status === 'submitted' || assignment.user_submission_status === 'graded') {
+      if (assignment.user_submitted_at) {
+        return <span className="flex items-center text-green-600"><CheckCircle size={16} className="mr-1" /> Submitted on {new Date(assignment.user_submitted_at).toLocaleDateString()}</span>;
+      } else {
+        return <span className="flex items-center text-green-600"><CheckCircle size={16} className="mr-1" /> Submitted</span>;
+      }
+    }
+    
+    // For pending assignments, show due date logic
     const dueDate = new Date(assignment.dueDate);
     const today = new Date();
     const diffTime = dueDate.getTime() - today.getTime();

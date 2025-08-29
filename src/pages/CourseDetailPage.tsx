@@ -21,7 +21,8 @@ import {
   Clock,
   Award,
   Users,
-  AlertCircle
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react';
 import { apiService } from '../services/api';
 import QuizComponent from '../components/student/QuizComponent';
@@ -502,8 +503,20 @@ const CourseDetailPage = () => {
                             <p className="text-sm text-gray-600 mb-2">{assignment.description}</p>
                             <div className="flex items-center space-x-4 text-sm text-gray-500">
                               <div className="flex items-center">
-                                <Calendar className="w-4 h-4 mr-1" />
-                                Due: {new Date(assignment.dueDate).toLocaleDateString()}
+                                {assignment.user_submission_status === 'submitted' || assignment.user_submission_status === 'graded' ? (
+                                  <>
+                                    <CheckCircle className="w-4 h-4 mr-1 text-green-600" />
+                                    {assignment.user_submitted_at 
+                                      ? `Submitted on ${new Date(assignment.user_submitted_at).toLocaleDateString()}`
+                                      : 'Submitted'
+                                    }
+                                  </>
+                                ) : (
+                                  <>
+                                    <Calendar className="w-4 h-4 mr-1" />
+                                    Due: {new Date(assignment.dueDate).toLocaleDateString()}
+                                  </>
+                                )}
                               </div>
                               <div className="flex items-center">
                                 <Award className="w-4 h-4 mr-1" />
