@@ -180,6 +180,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_staff:  # Teacher
+            # Filter out courses created by sample teachers
             return Course.objects.filter(teacher=user)
         else:  # Student
             return Course.objects.filter(students=user)
@@ -231,7 +232,7 @@ class CourseViewSet(viewsets.ModelViewSet):
             if not request.user.is_staff or course.teacher != request.user:
                 raise PermissionDenied("You can only view students for your own courses")
             
-            # Get real students enrolled in the course
+            # Get students enrolled in the course
             students = course.students.all()
             student_data = []
             
@@ -535,6 +536,10 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         submission.improvement_suggestions = improvement_suggestions
         submission.save()
         
+        # Notify the teacher about the quiz submission
+        from .utils import notify_assignment_submitted
+        notify_assignment_submitted(submission)
+        
         return Response({
             'message': 'Quiz submitted successfully',
             'score': score_percentage,
@@ -599,6 +604,10 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         submission.status = 'submitted'
         submission.submitted_at = timezone.now()
         submission.save()
+        
+        # Notify the teacher about the submission
+        from .utils import notify_assignment_submitted
+        notify_assignment_submitted(submission)
         
         return Response({
             'message': 'Assignment submitted successfully',
@@ -1114,7 +1123,10 @@ class DoubtViewSet(viewsets.ModelViewSet):
             return Doubt.objects.filter(student=user)
 
     def perform_create(self, serializer):
-        serializer.save(student=self.request.user)
+        doubt = serializer.save(student=self.request.user)
+        # Create notification for the teacher
+        from .utils import notify_doubt_created
+        notify_doubt_created(doubt)
 
     @action(detail=True, methods=['post'])
     def answer(self, request, pk=None):
@@ -1146,6 +1158,44 @@ class StudentStatsViewSet(viewsets.ReadOnlyModelViewSet):
             return StudentStats.objects.all()
         else:
             return StudentStats.objects.filter(student=user)
+
+    @action(detail=False, methods=['post'])
+    def update_stats(self, request):
+        """Update student statistics for all students or a specific student"""
+        if not request.user.is_staff:
+            raise PermissionDenied("Only teachers can update student stats")
+        
+        student_id = request.data.get('student_id')
+        
+        if student_id:
+            # Update stats for specific student
+            try:
+                from django.contrib.auth.models import User
+                student = User.objects.get(id=student_id)
+                from .signals import update_student_stats
+                update_student_stats(student)
+                return Response({'message': f'Stats updated for {student.username}'})
+            except User.DoesNotExist:
+                return Response({'error': 'Student not found'}, status=404)
+        else:
+            # Update stats for all students
+            from django.contrib.auth.models import User
+            from .signals import update_student_stats
+            
+            students = User.objects.filter(is_staff=False)
+            updated_count = 0
+            
+            for student in students:
+                try:
+                    update_student_stats(student)
+                    updated_count += 1
+                except Exception as e:
+                    print(f"Error updating stats for {student.username}: {str(e)}")
+            
+            return Response({
+                'message': f'Updated stats for {updated_count} students',
+                'updated_count': updated_count
+            })
 
 
 class AssignmentSubmissionViewSet(viewsets.ReadOnlyModelViewSet):

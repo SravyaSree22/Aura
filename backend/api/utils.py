@@ -1,5 +1,6 @@
 from django.utils import timezone
 from .models import Notification, User, Course, Assignment, Doubt
+from django.db import models
 
 def create_notification(user, title, message, notification_type='system', priority='medium', course=None, assignment=None, doubt=None):
     """
@@ -44,6 +45,40 @@ def notify_assignment_graded(submission):
         priority='high',
         course=submission.assignment.course,
         assignment=submission.assignment,
+    )
+
+def notify_assignment_submitted(submission):
+    """
+    Create notification for teachers when a student submits an assignment
+    """
+    teacher = submission.assignment.course.teacher
+    student_name = f"{submission.student.first_name} {submission.student.last_name}".strip() or submission.student.username
+    
+    create_notification(
+        user=teacher,
+        title=f"Assignment Submitted: {submission.assignment.title}",
+        message=f"{student_name} has submitted their assignment '{submission.assignment.title}' for {submission.assignment.course.name}.",
+        notification_type='assignment',
+        priority='medium',
+        course=submission.assignment.course,
+        assignment=submission.assignment,
+    )
+
+def notify_doubt_created(doubt):
+    """
+    Create notification for teachers when a student submits a doubt
+    """
+    teacher = doubt.course.teacher
+    student_name = f"{doubt.student.first_name} {doubt.student.last_name}".strip() or doubt.student.username
+    
+    create_notification(
+        user=teacher,
+        title=f"New Doubt: {doubt.course.name}",
+        message=f"{student_name} has submitted a doubt: '{doubt.question[:50]}...'",
+        notification_type='doubt',
+        priority='medium',
+        course=doubt.course,
+        doubt=doubt,
     )
 
 def notify_doubt_answered(doubt):
@@ -99,3 +134,5 @@ def notify_emotion_checkin(user):
         notification_type='emotion',
         priority='low',
     )
+
+

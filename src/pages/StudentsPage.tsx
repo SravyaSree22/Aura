@@ -7,10 +7,11 @@ import {
   Search, 
   Filter, 
   Download, 
-  Plus, 
-  X, 
   ChevronUp, 
-  ChevronDown
+  ChevronDown,
+  Users,
+  RefreshCw,
+  X
 } from 'lucide-react';
 import { apiService } from '../services/api';
 import { StudentStats } from '../types';
@@ -316,21 +317,17 @@ const PerformanceComparisonChart = ({ students }: { students: StudentStats[] }) 
 };
 
 const StudentsPage = () => {
-  const { studentStats } = useData();
+  const { studentStats, loading } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
-  const [showAddModal, setShowAddModal] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'charts'>('charts');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [newStudent, setNewStudent] = useState({
-    name: '',
-    email: '',
-    password: 'password123' // Default password
-  });
+  const [selectedStudent, setSelectedStudent] = useState<StudentStats | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   
   // Filter and sort students
   const filteredStudents = useMemo(() => {
@@ -386,41 +383,11 @@ const StudentsPage = () => {
     }
   };
 
-  const handleAddStudent = async () => {
-    if (!newStudent.name || !newStudent.email) {
-      setMessage({ type: 'error', text: 'Please fill all required fields' });
-      return;
-    }
+  
 
-    setIsLoading(true);
-    setMessage(null);
-
-    try {
-      const response = await apiService.createStudent(newStudent);
-      
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      setNewStudent({ name: '', email: '', password: 'password123' });
-      setShowAddModal(false);
-      setMessage({ type: 'success', text: 'Student added successfully!' });
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setMessage(null);
-      }, 3000);
-      
-      // Refresh the page to show new student
-      window.location.reload();
-    } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: error instanceof Error ? error.message : 'Failed to add student' 
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const handleViewProfile = (student: StudentStats) => {
+    setSelectedStudent(student);
+    setShowProfileModal(true);
   };
 
   const handleExportStudents = async () => {
@@ -464,6 +431,36 @@ const StudentsPage = () => {
     }
   };
 
+  const handleRefreshStats = async () => {
+    setIsLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await apiService.updateStudentStats();
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      setMessage({ type: 'success', text: 'Student statistics updated successfully!' });
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setMessage(null);
+      }, 3000);
+      
+      // Refresh the page to show updated stats
+      window.location.reload();
+    } catch (error) {
+      setMessage({ 
+        type: 'error', 
+        text: error instanceof Error ? error.message : 'Failed to update student statistics' 
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Calculate summary statistics
   const summaryStats = useMemo(() => {
     if (studentStats.length === 0) return null;
@@ -479,6 +476,21 @@ const StudentsPage = () => {
       totalAssignments
     };
   }, [studentStats]);
+
+
+
+  // Show loading state while data is being fetched
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Students...</h2>
+          <p className="text-gray-600">Please wait while we load the student data.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -499,16 +511,17 @@ const StudentsPage = () => {
           >
             Table
           </Button>
+          <Button variant="outline" size="sm" onClick={handleRefreshStats} disabled={isLoading}>
+            <RefreshCw className="w-4 h-4 mr-1" />
+            Refresh Stats
+            {isLoading && <span className="ml-2">Updating...</span>}
+          </Button>
           <Button variant="outline" size="sm" onClick={handleExportStudents} disabled={isLoading}>
             <Download className="w-4 h-4 mr-1" />
             Export
             {isLoading && <span className="ml-2">Exporting...</span>}
           </Button>
-          <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)} disabled={isLoading}>
-            <Plus className="w-4 h-4 mr-1" />
-            Add Student
-            {isLoading && <span className="ml-2">Adding...</span>}
-          </Button>
+
         </div>
       </div>
 
@@ -519,7 +532,7 @@ const StudentsPage = () => {
       )}
 
       {/* Summary Statistics */}
-      {summaryStats && (
+      {summaryStats ? (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4">
@@ -546,21 +559,37 @@ const StudentsPage = () => {
             </CardContent>
           </Card>
         </div>
+      ) : (
+        <Card>
+          <CardContent className="p-8">
+            <div className="text-center">
+              <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No students enrolled yet</h3>
+              <p className="text-gray-500 mb-6">You haven't enrolled any students in your courses yet. Students will appear here once they are enrolled in your courses.</p>
+              <div className="flex justify-center space-x-4">
+                <Button variant="outline" onClick={() => window.location.href = '/courses'}>
+                  Go to Courses
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {viewMode === 'charts' ? (
-        // Charts View
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <GradeDistributionChart students={filteredStudents} />
-            <AttendanceTrendChart students={filteredStudents} />
+      {studentStats.length > 0 && (
+        viewMode === 'charts' ? (
+          // Charts View
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <GradeDistributionChart students={filteredStudents} />
+              <AttendanceTrendChart students={filteredStudents} />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <EmotionalStatusChart students={filteredStudents} />
+              <PerformanceComparisonChart students={filteredStudents} />
+            </div>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <EmotionalStatusChart students={filteredStudents} />
-            <PerformanceComparisonChart students={filteredStudents} />
-          </div>
-        </div>
-      ) : (
+        ) : (
         // Table View
         <Card>
           <CardHeader className="border-b border-gray-200">
@@ -607,32 +636,32 @@ const StudentsPage = () => {
                   All Students
                 </Button>
                 <Button 
-                  variant={selectedFilter === 'high' ? 'primary' : 'outline'}
+                  variant={selectedFilter === 'high-performers' ? 'primary' : 'outline'}
                   size="sm"
-                  onClick={() => setSelectedFilter('high')}
+                  onClick={() => setSelectedFilter('high-performers')}
                 >
                   High Performers
                 </Button>
                 <Button 
-                  variant={selectedFilter === 'medium' ? 'primary' : 'outline'}
+                  variant={selectedFilter === 'needs-improvement' ? 'primary' : 'outline'}
                   size="sm"
-                  onClick={() => setSelectedFilter('medium')}
-                >
-                  Average Performers
-                </Button>
-                <Button 
-                  variant={selectedFilter === 'low' ? 'primary' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedFilter('low')}
+                  onClick={() => setSelectedFilter('needs-improvement')}
                 >
                   Needs Improvement
                 </Button>
                 <Button 
-                  variant={selectedFilter === 'attendance' ? 'primary' : 'outline'}
+                  variant={selectedFilter === 'good-attendance' ? 'primary' : 'outline'}
                   size="sm"
-                  onClick={() => setSelectedFilter('attendance')}
+                  onClick={() => setSelectedFilter('good-attendance')}
                 >
-                  Attendance Issues
+                  Good Attendance
+                </Button>
+                <Button 
+                  variant={selectedFilter === 'low-attendance' ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedFilter('low-attendance')}
+                >
+                  Low Attendance
                 </Button>
               </div>
             )}
@@ -658,11 +687,11 @@ const StudentsPage = () => {
                     <th 
                       scope="col" 
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                      onClick={() => toggleSort('grade')}
+                      onClick={() => toggleSort('averageGrade')}
                     >
                       <div className="flex items-center">
                         Average Grade
-                        {sortField === 'grade' && (
+                        {sortField === 'averageGrade' && (
                           <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                         )}
                       </div>
@@ -670,11 +699,11 @@ const StudentsPage = () => {
                     <th 
                       scope="col" 
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                      onClick={() => toggleSort('attendance')}
+                      onClick={() => toggleSort('attendanceRate')}
                     >
                       <div className="flex items-center">
                         Attendance
-                        {sortField === 'attendance' && (
+                        {sortField === 'attendanceRate' && (
                           <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                         )}
                       </div>
@@ -738,7 +767,13 @@ const StudentsPage = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <Button variant="outline" size="sm">View Profile</Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewProfile(student)}
+                        >
+                          View Profile
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -755,79 +790,141 @@ const StudentsPage = () => {
             </div>
           </CardContent>
         </Card>
+        )
       )}
 
-      {/* Add Student Modal */}
-      {showAddModal && (
+      {/* Student Profile Modal */}
+      {showProfileModal && selectedStudent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium">Add New Student</h3>
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">{selectedStudent.name}</h2>
+                <p className="text-sm text-gray-600">Student Profile</p>
+              </div>
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={() => setShowProfileModal(false)}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name
-                </label>
-                <Input
-                  type="text"
-                  value={newStudent.name}
-                  onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
-                  placeholder="Enter student name"
-                />
+
+            {/* Content */}
+            <div className="p-6">
+              {/* Basic Info */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <p className="text-sm text-gray-900">{selectedStudent.name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <p className="text-sm text-gray-900">student{selectedStudent.id}@example.com</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
+                    <p className="text-sm text-gray-900">{selectedStudent.id}</p>
+                  </div>
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <Input
-                  type="email"
-                  value={newStudent.email}
-                  onChange={(e) => setNewStudent({...newStudent, email: e.target.value})}
-                  placeholder="Enter email address"
-                />
+
+              {/* Academic Performance */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Academic Performance</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-blue-600">{selectedStudent.averageGrade.toFixed(1)}%</div>
+                      <div className="text-sm text-gray-600">Average Grade</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-green-600">{(selectedStudent.attendanceRate * 100).toFixed(0)}%</div>
+                      <div className="text-sm text-gray-600">Attendance Rate</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-purple-600">{selectedStudent.assignmentsCompleted}</div>
+                      <div className="text-sm text-gray-600">Assignments Completed</div>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Password (Default: password123)
-                </label>
-                <Input
-                  type="password"
-                  value={newStudent.password}
-                  onChange={(e) => setNewStudent({...newStudent, password: e.target.value})}
-                  placeholder="Enter password"
-                />
+
+              {/* Emotional Status */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Emotional Status</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <span className="text-blue-600 font-semibold">{selectedStudent.emotionalStatus.focused}</span>
+                    </div>
+                    <p className="text-sm text-gray-600">Focused</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <span className="text-green-600 font-semibold">{selectedStudent.emotionalStatus.normal}</span>
+                    </div>
+                    <p className="text-sm text-gray-600">Normal</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <span className="text-orange-600 font-semibold">{selectedStudent.emotionalStatus.tired}</span>
+                    </div>
+                    <p className="text-sm text-gray-600">Tired</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <span className="text-red-600 font-semibold">{selectedStudent.emotionalStatus.stressed}</span>
+                    </div>
+                    <p className="text-sm text-gray-600">Stressed</p>
+                  </div>
+                </div>
               </div>
+
+              {/* Performance Trend */}
+              {selectedStudent.trend && selectedStudent.trend.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Performance Trend</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      {selectedStudent.trend.map((grade: number, index: number) => (
+                        <div key={index} className="flex-1">
+                          <div className="text-xs text-gray-500 mb-1">Grade {index + 1}</div>
+                          <div className={`h-8 rounded flex items-center justify-center text-xs font-medium ${
+                            grade >= 80 ? 'bg-green-100 text-green-800' :
+                            grade >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {grade.toFixed(0)}%
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-            
-            <div className="flex justify-end space-x-3 mt-6">
+
+            {/* Footer */}
+            <div className="flex justify-end p-6 border-t border-gray-200">
               <Button
                 variant="outline"
-                onClick={() => setShowAddModal(false)}
+                onClick={() => setShowProfileModal(false)}
               >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleAddStudent}
-                disabled={isLoading}
-              >
-                Add Student
-                {isLoading && <span className="ml-2">Adding...</span>}
+                Close
               </Button>
             </div>
           </div>
         </div>
       )}
+
       
       <style>{`
         @keyframes slideDown {

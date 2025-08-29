@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { apiService } from '../services/api';
 import QuizComponent from '../components/student/QuizComponent';
+import AssignmentDetailsModal from '../components/student/AssignmentDetailsModal';
 
 const CourseDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -62,6 +63,8 @@ const CourseDetailPage = () => {
     points: 1
   });
   const [courseStudents, setCourseStudents] = useState<any[]>([]);
+  const [showAssignmentDetails, setShowAssignmentDetails] = useState(false);
+  const [selectedAssignmentForDetails, setSelectedAssignmentForDetails] = useState<any>(null);
   // const [studentsLoading, setStudentsLoading] = useState(false);
 
   // Handle course ID with or without 'c' prefix
@@ -381,6 +384,11 @@ const CourseDetailPage = () => {
     }, 5000);
   };
 
+  const handleViewAssignmentDetails = (assignment: any) => {
+    setSelectedAssignmentForDetails(assignment);
+    setShowAssignmentDetails(true);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -474,8 +482,7 @@ const CourseDetailPage = () => {
                         if (assignment.assignment_type === 'quiz') {
                           handleTakeQuiz(assignment);
                         } else {
-                          // For regular assignments, the file upload is handled in AssignmentCard
-                          console.log('Regular assignment - file upload available in card');
+                          handleViewAssignmentDetails(assignment);
                         }
                       }}
                     />
@@ -1058,6 +1065,18 @@ const CourseDetailPage = () => {
             </div>
           );
         })()}
+
+        {/* Assignment Details Modal */}
+        {selectedAssignmentForDetails && (
+          <AssignmentDetailsModal
+            assignment={selectedAssignmentForDetails}
+            isOpen={showAssignmentDetails}
+            onClose={() => {
+              setShowAssignmentDetails(false);
+              setSelectedAssignmentForDetails(null);
+            }}
+          />
+        )}
       </div>
     </div>
   );

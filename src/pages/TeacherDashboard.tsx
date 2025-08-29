@@ -8,9 +8,9 @@ import { AlertTriangle, BookOpen, Layers, Users } from 'lucide-react';
 const TeacherDashboard = () => {
   const { studentStats, doubts, courses } = useData();
   
-  // Calculate stats
-  const averageGrade = studentStats.reduce((sum, student) => sum + student.averageGrade, 0) / studentStats.length;
-  const averageAttendance = studentStats.reduce((sum, student) => sum + student.attendanceRate, 0) / studentStats.length * 100;
+  // Calculate stats (handle empty arrays)
+  const averageGrade = studentStats.length > 0 ? studentStats.reduce((sum, student) => sum + student.averageGrade, 0) / studentStats.length : 0;
+  const averageAttendance = studentStats.length > 0 ? studentStats.reduce((sum, student) => sum + student.attendanceRate, 0) / studentStats.length * 100 : 0;
   const pendingDoubts = doubts.filter(doubt => doubt.status === 'pending').length;
   
   return (
@@ -69,7 +69,23 @@ const TeacherDashboard = () => {
       </div>
       
       {/* Performance Charts */}
-      <PerformanceChart students={studentStats} />
+      {studentStats.length > 0 ? (
+        <PerformanceChart students={studentStats} />
+      ) : (
+        <Card>
+          <CardHeader>
+            <h3 className="font-medium text-gray-900">Student Performance Trends</h3>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-gray-500">
+              <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No students enrolled yet</h3>
+              <p className="text-gray-500 mb-4">Student performance data will appear here once you have enrolled students in your courses.</p>
+              <p className="text-sm text-gray-400">Go to Courses to enroll students and start tracking their progress.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       {/* Student List - Removed due to type incompatibility */}
       {/* <StudentList students={studentStats} /> */}

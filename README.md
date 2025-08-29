@@ -91,12 +91,7 @@ A comprehensive learning management system with real-time facial emotion recogni
    python manage.py migrate
    ```
 
-6. **Populate sample data**
-   ```bash
-   python manage.py populate_data
-   ```
-
-7. **Start the Django server**
+6. **Start the Django server**
    ```bash
    python manage.py runserver 8050
    ```

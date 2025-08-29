@@ -26,12 +26,14 @@ const StudentDashboard = () => {
     ? grades.reduce((sum, grade) => sum + (grade.value / grade.maxValue) * 100, 0) / grades.length
     : 0;
   
-  // Get upcoming assignments
+  // Get upcoming assignments (not submitted yet)
   const pendingAssignments = assignments
     .filter(a => {
       const dueDate = new Date(a.dueDate);
       const today = new Date();
-      return dueDate >= today;
+      const isUpcoming = dueDate >= today;
+      const isNotSubmitted = !a.user_submission_status || a.user_submission_status === 'pending';
+      return isUpcoming && isNotSubmitted;
     })
     .slice(0, 3);
   
@@ -81,7 +83,9 @@ const StudentDashboard = () => {
                 {assignments.filter(a => {
                   const dueDate = new Date(a.dueDate);
                   const today = new Date();
-                  return dueDate >= today;
+                  const isUpcoming = dueDate >= today;
+                  const isNotSubmitted = !a.user_submission_status || a.user_submission_status === 'pending';
+                  return isUpcoming && isNotSubmitted;
                 }).length}
               </h3>
             </div>
@@ -97,9 +101,7 @@ const StudentDashboard = () => {
               <p className="text-sm font-medium text-violet-600">Completed Assignments</p>
               <h3 className="text-2xl font-bold text-gray-900">
                 {assignments.filter(a => {
-                  const dueDate = new Date(a.dueDate);
-                  const today = new Date();
-                  return dueDate < today;
+                  return a.user_submission_status === 'submitted' || a.user_submission_status === 'graded';
                 }).length}
               </h3>
             </div>

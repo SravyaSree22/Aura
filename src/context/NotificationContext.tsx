@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { Notification } from '../types';
 import { apiService } from '../services/api';
+import { useAuth } from './AuthContext';
 
 interface NotificationContextType {
   notifications: Notification[];
@@ -27,6 +28,7 @@ const NotificationContext = createContext<NotificationContextType>({
 export const useNotifications = () => useContext(NotificationContext);
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
+  const { currentUser, loading: authLoading } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -120,8 +122,21 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // Initialize only once
+  // Initialize when user is authenticated
   useEffect(() => {
+    // Don't fetch notifications while auth is still loading
+    if (authLoading) {
+      return;
+    }
+    
+    // Only fetch notifications if user is authenticated
+    if (!currentUser) {
+      setNotifications([]);
+      setUnreadCount(0);
+      initializedRef.current = false;
+      return;
+    }
+
     if (!initializedRef.current) {
       initializedRef.current = true;
       // Use setTimeout to ensure this runs after the component is fully mounted
@@ -130,16 +145,20 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         fetchUnreadCount();
       }, 0);
     }
-  }, []); // Empty dependency array
+  }, [currentUser, authLoading]); // Depend on authentication state
 
-  // Refresh notifications every 30 seconds
+  // Refresh notifications every 30 seconds when user is authenticated
   useEffect(() => {
+    if (!currentUser || authLoading) {
+      return;
+    }
+
     const interval = setInterval(() => {
       fetchUnreadCount();
     }, 30000); // 30 seconds
 
     return () => clearInterval(interval);
-  }, [fetchUnreadCount]);
+  }, [fetchUnreadCount, currentUser, authLoading]);
 
   const value = useMemo(() => ({
     notifications,

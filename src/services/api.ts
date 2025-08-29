@@ -404,6 +404,13 @@ class ApiService {
     return this.request('/student-stats/');
   }
 
+  async updateStudentStats(studentId?: string) {
+    return this.request('/student-stats/update_stats/', {
+      method: 'POST',
+      body: JSON.stringify({ student_id: studentId }),
+    });
+  }
+
   // Schedule endpoints
   async getSchedules() {
     return this.request('/schedules/');

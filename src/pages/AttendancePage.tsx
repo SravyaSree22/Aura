@@ -121,7 +121,7 @@ const AttendancePage = () => {
           
           if (attendanceResponse.data && Array.isArray(attendanceResponse.data)) {
             console.log('Found existing attendance data:', attendanceResponse.data);
-            console.log('Sample attendance record structure:', attendanceResponse.data[0]);
+    
             
             // Create attendance records with existing data or default to 'present'
             const initialRecords: AttendanceRecord[] = response.data.map(student => {
